@@ -63,5 +63,15 @@ describe('run(source, config) function', () => {
     expect(result).to.equal(5);
   });
 
+  it('subtracts two numbers', async() => {
+    const result = await run("5 - 3", config);
+    expect(result).to.equal(2);
+  });
+
+  it('multiplies two numbers', async() => {
+    const result = await run("5 * 3", config);
+    expect(result).to.equal(15);
+  });
+
   // TODO: add additional tests here to ensure the compiler runs as expected
 });

@@ -23,6 +23,20 @@ describe('traverseExpr(c, s) function', () => {
     expect(parsedExpr).to.deep.equal({tag: "num", value: 987});
   })
 
+  it('parses addition', () => {
+    const source = "2+3";
+    const cursor = parser.parse(source).cursor();
+
+    // go to statement
+    cursor.firstChild();
+    // go to expression
+    cursor.firstChild();
+
+    const parsedExpr = traverseExpr(cursor, source);
+
+    // Note: we have to use deep equality when comparing objects
+    expect(parsedExpr).to.deep.equal({"arg1": {"tag": "num", "value": 2}, "arg2": {"tag": "num", "value": 3}, "name": "+", "tag": "binop"});
+  })
   // TODO: add additional tests here to ensure traverseExpr works as expected
 });
 

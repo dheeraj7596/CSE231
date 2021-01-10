@@ -7,3 +7,4 @@ export type Expr =
     { tag: "num", value: number }
   | { tag: "id", name: string }
   | { tag: "builtin1", name: string, arg: Expr }
+  | { tag: "binop", name: string, arg1: Expr, arg2: Expr}

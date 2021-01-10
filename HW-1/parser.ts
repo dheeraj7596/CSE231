@@ -28,7 +28,20 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr {
         name: callName,
         arg: arg
       };
-
+    case "BinaryExpression":
+      c.firstChild();
+      const arg1 = traverseExpr(c, s); // get first argument
+      c.nextSibling(); // go to the operation
+      const binop = s.substring(c.from, c.to);
+      c.nextSibling();
+      const arg2 = traverseExpr(c, s); // get second argument
+      c.parent(); // pop BinaryExpression
+      return {
+        tag: "binop",
+        name: binop,
+        arg1: arg1,
+        arg2: arg2
+      };
     default:
       throw new Error("Could not parse expr at " + c.from + " " + c.to + ": " + s.substring(c.from, c.to));
   }

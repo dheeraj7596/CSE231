@@ -53,5 +53,18 @@ function codeGenExpr(expr : Expr) : Array<string> {
       return ["(i32.const " + expr.value + ")"];
     case "id":
       return [`(local.get $${expr.name})`];
+    case "binop":
+      var binOpArgStmts = codeGenExpr(expr.arg1);
+      binOpArgStmts = binOpArgStmts.concat(codeGenExpr(expr.arg2));
+      if (expr.name == "+") {
+        binOpArgStmts = binOpArgStmts.concat([`(i32.add)`]);
+      } 
+      else if(expr.name == "-") {
+        binOpArgStmts = binOpArgStmts.concat([`(i32.sub)`]);
+      } 
+      else if(expr.name == "*") {
+        binOpArgStmts = binOpArgStmts.concat([`(i32.mul)`]);
+      }
+      return binOpArgStmts;
   }
 }
