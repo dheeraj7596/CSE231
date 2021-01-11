@@ -12,6 +12,14 @@ function webStart() {
           elt.innerText = arg;
           return arg;
         },
+        abs: (arg : any) => {
+          console.log("Logging from WASM: ", arg);
+          const elt = document.createElement("pre");
+          document.getElementById("output").appendChild(elt);
+          const out = Math.abs(arg); 
+          elt.innerText = out.toString();
+          return out;
+        },
       },
     };
 

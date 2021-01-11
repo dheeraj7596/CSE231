@@ -13,6 +13,11 @@ const importObject = {
       importObject.output += "\n";
       return arg;
     },
+    abs: (arg: any) => {
+      const out = Math.abs(arg);
+      importObject.output += out;
+      return out;
+    }
   },
 
   output: ""
@@ -71,6 +76,16 @@ describe('run(source, config) function', () => {
   it('multiplies two numbers', async() => {
     const result = await run("5 * 3", config);
     expect(result).to.equal(15);
+  });
+
+  it('computes absolute value of a positive number', async() => {
+    const result = await run("abs(5)", config);
+    expect(result).to.equal(5);
+  });
+
+  it('computes absolute value of a negative number', async() => {
+    const result = await run("abs(-5)", config);
+    expect(result).to.equal(5);
   });
 
   // TODO: add additional tests here to ensure the compiler runs as expected

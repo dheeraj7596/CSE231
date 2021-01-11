@@ -42,6 +42,17 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr {
         arg1: arg1,
         arg2: arg2
       };
+    case "UnaryExpression":
+      c.firstChild();
+      const sign = s.substring(c.from, c.to);
+      c.nextSibling(); // go to the expression
+      const arg0 = traverseExpr(c, s); // get the only argument
+      c.parent(); // pop UnaryExpression
+      return {
+        tag: "uninum", 
+        value: arg0, 
+        sign: sign
+      }; 
     default:
       throw new Error("Could not parse expr at " + c.from + " " + c.to + ": " + s.substring(c.from, c.to));
   }

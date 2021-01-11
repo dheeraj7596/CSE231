@@ -66,5 +66,7 @@ function codeGenExpr(expr : Expr) : Array<string> {
         binOpArgStmts = binOpArgStmts.concat([`(i32.mul)`]);
       }
       return binOpArgStmts;
+    case "uninum":
+      return codeGenExpr(expr.value);
   }
 }
