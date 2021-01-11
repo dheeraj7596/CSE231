@@ -20,6 +20,30 @@ function webStart() {
           elt.innerText = out.toString();
           return out;
         },
+        max: (arg1 : any, arg2 : any) => {
+          console.log("Logging from WASM: ", arg1, arg2);
+          const elt = document.createElement("pre");
+          document.getElementById("output").appendChild(elt);
+          const out = Math.max(arg1, arg2); 
+          elt.innerText = out.toString();
+          return out;
+        },
+        min: (arg1 : any, arg2 : any) => {
+          console.log("Logging from WASM: ", arg1, arg2);
+          const elt = document.createElement("pre");
+          document.getElementById("output").appendChild(elt);
+          const out = Math.min(arg1, arg2); 
+          elt.innerText = out.toString();
+          return out;
+        },
+        pow: (arg1 : any, arg2 : any) => {
+          console.log("Logging from WASM: ", arg1, arg2);
+          const elt = document.createElement("pre");
+          document.getElementById("output").appendChild(elt);
+          const out = Math.pow(arg1, arg2); 
+          elt.innerText = out.toString();
+          return out;
+        },
       },
     };
 

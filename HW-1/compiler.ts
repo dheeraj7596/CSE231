@@ -49,6 +49,10 @@ function codeGenExpr(expr : Expr) : Array<string> {
     case "builtin1":
       const argStmts = codeGenExpr(expr.arg);
       return argStmts.concat([`(call $${expr.name})`]);
+    case "builtin2":
+      var builtin2ArgStmts = codeGenExpr(expr.arg1);
+      builtin2ArgStmts = builtin2ArgStmts.concat(codeGenExpr(expr.arg2));
+      return builtin2ArgStmts.concat([`(call $${expr.name})`]);
     case "num":
       return ["(i32.const " + expr.value + ")"];
     case "id":

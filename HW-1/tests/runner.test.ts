@@ -17,7 +17,22 @@ const importObject = {
       const out = Math.abs(arg);
       importObject.output += out;
       return out;
-    }
+    },
+    max: (arg1: any, arg2: any) => {
+      const out = Math.max(arg1, arg2);
+      importObject.output += out;
+      return out;
+    },
+    min: (arg1: any, arg2: any) => {
+      const out = Math.min(arg1, arg2);
+      importObject.output += out;
+      return out;
+    },
+    pow: (arg1: any, arg2: any) => {
+      const out = Math.pow(arg1, arg2);
+      importObject.output += out;
+      return out;
+    },
   },
 
   output: ""
@@ -78,14 +93,29 @@ describe('run(source, config) function', () => {
     expect(result).to.equal(15);
   });
 
-  it('computes absolute value of a positive number', async() => {
+  it('absolute value of a positive number', async() => {
     const result = await run("abs(5)", config);
     expect(result).to.equal(5);
   });
 
-  it('computes absolute value of a negative number', async() => {
+  it('absolute value of a negative number', async() => {
     const result = await run("abs(-5)", config);
     expect(result).to.equal(5);
+  });
+
+  it('max value', async() => {
+    const result = await run("max(5, 9)", config);
+    expect(result).to.equal(9);
+  });
+
+  it('min value', async() => {
+    const result = await run("min(5, 9)", config);
+    expect(result).to.equal(5);
+  });
+
+  it('power', async() => {
+    const result = await run("pow(2, 3)", config);
+    expect(result).to.equal(8);
   });
 
   // TODO: add additional tests here to ensure the compiler runs as expected
