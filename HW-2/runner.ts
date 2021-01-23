@@ -21,7 +21,7 @@ if(typeof process !== "undefined") {
   };
 }
 
-export async function run(source : string, config: any) : Promise<number> {
+export async function run(source : string, config: any) : Promise<[any, compiler.GlobalEnv]> {
   const wabtInterface = await wabt();
   const parsed = parse(source);
   var returnType = "";
@@ -29,24 +29,27 @@ export async function run(source : string, config: any) : Promise<number> {
   const lastExpr = parsed[parsed.length - 1]
   if(lastExpr.tag === "expr") {
     returnType = "(result i64)";
-    returnExpr = "(local.get $$last)"
   }
-  const compiled = compiler.compile(source);
+  const compiled = compiler.compile(source, config.env);
   const importObject = config.importObject;
+  if(!importObject.js) {
+    const memory = new WebAssembly.Memory({initial:10, maximum:100});
+    importObject.js = { memory: memory };
+  }
   const wasmSource = `(module
     (func $print (import "imports" "print") (param i64) (result i64))
+    (import "js" "memory" (memory 1))
     (func $abs (import "imports" "abs") (param i64) (result i64))
     (func $max (import "imports" "max") (param i64) (param i64) (result i64))
     (func $min (import "imports" "min") (param i64) (param i64) (result i64))
     (func $pow (import "imports" "pow") (param i64) (param i64) (result i64))
     (func (export "exported_func") ${returnType}
       ${compiled.wasmSource}
-      ${returnExpr}
     )
   )`;
   const myModule = wabtInterface.parseWat("test.wat", wasmSource);
   var asBinary = myModule.toBinary({});
   var wasmModule = await WebAssembly.instantiate(asBinary.buffer, importObject);
   const result = (wasmModule.instance.exports.exported_func as any)();
-  return result;
+  return [result, compiled.newEnv];
 }

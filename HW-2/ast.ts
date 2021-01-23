@@ -3,6 +3,8 @@ export type Type = "bool" | "int" | "none"
 export type Stmt =
   | { tag: "define", name: string, value: Expr }
   | { tag: "expr", expr: Expr }
+  | { tag: "globals" }
+
 
 export type Expr =
     { tag: "literal", value: number, type: Type }
