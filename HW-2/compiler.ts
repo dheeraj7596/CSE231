@@ -19,10 +19,10 @@ export function compile(source: string) : CompileResult {
         break;
     }
   }); 
-  const scratchVar : string = `(local $$last i32)`;
+  const scratchVar : string = `(local $$last i64)`;
   const localDefines = [scratchVar];
   definedVars.forEach(v => {
-    localDefines.push(`(local $${v} i32)`);
+    localDefines.push(`(local $${v} i64)`);
   })
   
   const commandGroups = ast.map((stmt) => codeGen(stmt));
@@ -53,24 +53,24 @@ function codeGenExpr(expr : Expr) : Array<string> {
       var builtin2ArgStmts = codeGenExpr(expr.arg1);
       builtin2ArgStmts = builtin2ArgStmts.concat(codeGenExpr(expr.arg2));
       return builtin2ArgStmts.concat([`(call $${expr.name})`]);
-    case "num":
-      return ["(i32.const " + expr.value + ")"];
+    case "literal":
+      return ["(i64.const " + expr.value + ")"];
     case "id":
       return [`(local.get $${expr.name})`];
     case "binop":
       var binOpArgStmts = codeGenExpr(expr.arg1);
       binOpArgStmts = binOpArgStmts.concat(codeGenExpr(expr.arg2));
       if (expr.name == "+") {
-        binOpArgStmts = binOpArgStmts.concat([`(i32.add)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.add)`]);
       } 
       else if(expr.name == "-") {
-        binOpArgStmts = binOpArgStmts.concat([`(i32.sub)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.sub)`]);
       } 
       else if(expr.name == "*") {
-        binOpArgStmts = binOpArgStmts.concat([`(i32.mul)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.mul)`]);
       }
       return binOpArgStmts;
-    case "uninum":
+    case "uniop":
       return codeGenExpr(expr.value);
   }
 }

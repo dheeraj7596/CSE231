@@ -6,9 +6,28 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr {
   switch(c.type.name) {
     case "Number":
       return {
-        tag: "num",
-        value: Number(s.substring(c.from, c.to))
+        tag: "literal",
+        value: Number(s.substring(c.from, c.to)),
+        type: "int"
       }
+    case "Boolean":
+      const boolVal = s.substring(c.from, c.to);
+      if (boolVal == "True") {
+        return{
+          tag: "literal",
+          value: Number(1) + 2**32, // Making the 33rd bit 1 for bool.
+          type: "bool"
+        }
+      } else if (boolVal == "False") {
+        return{
+          tag: "literal",
+          value: Number(0) + 2**32, // Making the 33rd bit 1 for bool.
+          type: "bool"
+        }
+      } else {
+        throw new Error('Boolean value which is not True/False observed.');
+      }
+      
     case "VariableName":
       return {
         tag: "id",
@@ -63,14 +82,14 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr {
       };
     case "UnaryExpression":
       c.firstChild();
-      const sign = s.substring(c.from, c.to);
+      const op = s.substring(c.from, c.to);
       c.nextSibling(); // go to the expression
       const arg0 = traverseExpr(c, s); // get the only argument
       c.parent(); // pop UnaryExpression
       return {
-        tag: "uninum", 
+        tag: "uniop", 
         value: arg0, 
-        sign: sign
+        name: op
       }; 
     default:
       throw new Error("Could not parse expr at " + c.from + " " + c.to + ": " + s.substring(c.from, c.to));

@@ -9,40 +9,57 @@ function webStart() {
           console.log("Logging from WASM: ", arg);
           const elt = document.createElement("pre");
           document.getElementById("output").appendChild(elt);
-          elt.innerText = arg;
-          return arg;
+          if (arg < 2**32) { // This is a number
+            elt.innerText = arg;
+            return BigInt(arg);
+          }
+          else if (BigInt(arg) >= 2**32 && BigInt(arg) < 2**33) {
+            // Bools are added with 2^32.
+            arg = BigInt(arg) & BigInt(1);
+            if (arg == 1) {
+              elt.innerText = "True";
+            }
+            else if (arg == 0) {
+              elt.innerText = "False";
+            }
+            else {
+              throw Error("Something other than True/False appeared.")
+            }
+            return arg;
+          }
+          
         },
         abs: (arg : any) => {
           console.log("Logging from WASM: ", arg);
           const elt = document.createElement("pre");
           document.getElementById("output").appendChild(elt);
-          const out = Math.abs(arg); 
+          const out = Math.abs(Number(arg)); 
           elt.innerText = out.toString();
-          return out;
+          return BigInt(out);
         },
         max: (arg1 : any, arg2 : any) => {
           console.log("Logging from WASM: ", arg1, arg2);
           const elt = document.createElement("pre");
           document.getElementById("output").appendChild(elt);
-          const out = Math.max(arg1, arg2); 
+          const out = Math.max(Number(arg1), Number(arg2)); 
           elt.innerText = out.toString();
-          return out;
+          return BigInt(out);
         },
         min: (arg1 : any, arg2 : any) => {
           console.log("Logging from WASM: ", arg1, arg2);
           const elt = document.createElement("pre");
           document.getElementById("output").appendChild(elt);
-          const out = Math.min(arg1, arg2); 
+          const out = Math.min(Number(arg1), Number(arg2)); 
           elt.innerText = out.toString();
-          return out;
+          return BigInt(out);
         },
         pow: (arg1 : any, arg2 : any) => {
           console.log("Logging from WASM: ", arg1, arg2);
           const elt = document.createElement("pre");
           document.getElementById("output").appendChild(elt);
-          const out = Math.pow(arg1, arg2); 
+          const out = Math.pow(Number(arg1), Number(arg2)); 
           elt.innerText = out.toString();
-          return out;
+          return BigInt(out);
         },
       },
     };

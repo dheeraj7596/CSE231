@@ -9,29 +9,47 @@ const importObject = {
     //  We can then examine output to see what would have been printed in the
     //  console.
     print: (arg : any) => {
-      importObject.output += arg;
-      importObject.output += "\n";
-      return arg;
+      if (arg < 2**32) {
+        importObject.output += BigInt(arg);
+        importObject.output += "\n";
+        return BigInt(arg);
+      }
+      else if (BigInt(arg) >= 2**32 && BigInt(arg) < 2**33) {
+        arg = BigInt(arg) & BigInt(1);
+        if (arg == 1) {
+          importObject.output += "True";
+          importObject.output += "\n";
+          return "True";
+        }
+        else if (arg == 0) {
+          importObject.output += "False";
+          importObject.output += "\n";
+          return "False";
+        }
+        else {
+          throw Error("Something other than True/False appeared.")
+        }
+      }
     },
     abs: (arg: any) => {
-      const out = Math.abs(arg);
+      const out = Math.abs(Number(arg));
       importObject.output += out;
-      return out;
+      return BigInt(out);
     },
     max: (arg1: any, arg2: any) => {
-      const out = Math.max(arg1, arg2);
+      const out = Math.max(Number(arg1), Number(arg2));
       importObject.output += out;
-      return out;
+      return BigInt(out);
     },
     min: (arg1: any, arg2: any) => {
-      const out = Math.min(arg1, arg2);
+      const out = Math.min(Number(arg1), Number(arg2));
       importObject.output += out;
-      return out;
+      return BigInt(out);
     },
     pow: (arg1: any, arg2: any) => {
-      const out = Math.pow(arg1, arg2);
+      const out = Math.pow(Number(arg1), Number(arg2));
       importObject.output += out;
-      return out;
+      return BigInt(out);
     },
   },
 
@@ -55,7 +73,7 @@ describe('run(source, config) function', () => {
   // asynchronous return value. 
   it('returns the right number', async () => {
     const result = await run("987", config);
-    expect(result).to.equal(987);
+    expect(result).to.equal(BigInt(987));
   });
 
   // 2- we can test the behavior of the compiler by also looking at the log 
@@ -69,9 +87,9 @@ describe('run(source, config) function', () => {
   // other assertions provided by chai.
   it('prints two numbers but returns last one', async () => {
     var result = await run("print(987)", config);
-    expect(result).to.equal(987);
+    expect(result).to.equal(BigInt(987));
     result = await run("print(123)", config);
-    expect(result).to.equal(123);
+    expect(result).to.equal(BigInt(123));
     
     expect(config.importObject.output).to.equal("987\n123\n");
   });
@@ -80,42 +98,42 @@ describe('run(source, config) function', () => {
   // implement it. You will make this test pass!
   it('adds two numbers', async() => {
     const result = await run("2 + 3", config);
-    expect(result).to.equal(5);
+    expect(result).to.equal(BigInt(5));
   });
 
   it('subtracts two numbers', async() => {
     const result = await run("5 - 3", config);
-    expect(result).to.equal(2);
+    expect(result).to.equal(BigInt(2));
   });
 
   it('multiplies two numbers', async() => {
     const result = await run("5 * 3", config);
-    expect(result).to.equal(15);
+    expect(result).to.equal(BigInt(15));
   });
 
   it('absolute value of a positive number', async() => {
     const result = await run("abs(5)", config);
-    expect(result).to.equal(5);
+    expect(result).to.equal(BigInt(5));
   });
 
   it('absolute value of a negative number', async() => {
     const result = await run("abs(-5)", config);
-    expect(result).to.equal(5);
+    expect(result).to.equal(BigInt(5));
   });
 
   it('max value', async() => {
     const result = await run("max(5, 9)", config);
-    expect(result).to.equal(9);
+    expect(result).to.equal(BigInt(9));
   });
 
   it('min value', async() => {
     const result = await run("min(5, 9)", config);
-    expect(result).to.equal(5);
+    expect(result).to.equal(BigInt(5));
   });
 
   it('power', async() => {
     const result = await run("pow(2, 3)", config);
-    expect(result).to.equal(8);
+    expect(result).to.equal(BigInt(8));
   });
 
   // TODO: add additional tests here to ensure the compiler runs as expected

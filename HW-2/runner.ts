@@ -28,17 +28,17 @@ export async function run(source : string, config: any) : Promise<number> {
   var returnExpr = "";
   const lastExpr = parsed[parsed.length - 1]
   if(lastExpr.tag === "expr") {
-    returnType = "(result i32)";
+    returnType = "(result i64)";
     returnExpr = "(local.get $$last)"
   }
   const compiled = compiler.compile(source);
   const importObject = config.importObject;
   const wasmSource = `(module
-    (func $print (import "imports" "print") (param i32) (result i32))
-    (func $abs (import "imports" "abs") (param i32) (result i32))
-    (func $max (import "imports" "max") (param i32) (param i32) (result i32))
-    (func $min (import "imports" "min") (param i32) (param i32) (result i32))
-    (func $pow (import "imports" "pow") (param i32) (param i32) (result i32))
+    (func $print (import "imports" "print") (param i64) (result i64))
+    (func $abs (import "imports" "abs") (param i64) (result i64))
+    (func $max (import "imports" "max") (param i64) (param i64) (result i64))
+    (func $min (import "imports" "min") (param i64) (param i64) (result i64))
+    (func $pow (import "imports" "pow") (param i64) (param i64) (result i64))
     (func (export "exported_func") ${returnType}
       ${compiled.wasmSource}
       ${returnExpr}

@@ -1,11 +1,12 @@
+export type Type = "bool" | "int" | "none"
 
 export type Stmt =
   | { tag: "define", name: string, value: Expr }
   | { tag: "expr", expr: Expr }
 
 export type Expr =
-    { tag: "num", value: number }
-  | {tag: "uninum", value: Expr, sign: string} 
+    { tag: "literal", value: number, type: Type }
+  | {tag: "uniop", value: Expr, name: string} 
   | { tag: "id", name: string }
   | { tag: "builtin1", name: string, arg: Expr }
   | { tag: "binop", name: string, arg1: Expr, arg2: Expr}
