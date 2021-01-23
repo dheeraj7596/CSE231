@@ -49,13 +49,13 @@ export function compile(source: string, env: GlobalEnv) : CompileResult {
 
 function envLookup(env : GlobalEnv, name : string) : number {
   if(!env.globals.has(name)) { console.log("Could not find " + name + " in ", env); throw new Error("Could not find name " + name); }
-  return (env.globals.get(name) * 4); // 4-byte values
+  return (env.globals.get(name) * 8); // 4-byte values
 }
 
 function codeGen(stmt: Stmt, env: GlobalEnv) : Array<string> {
   switch(stmt.tag) {
     case "define":
-      const locationToStore = [`(i64.const ${envLookup(env, stmt.name)}) ;; ${stmt.name}`];
+      const locationToStore = [`(i32.const ${envLookup(env, stmt.name)}) ;; ${stmt.name}`];
       var valStmts = codeGenExpr(stmt.value, env);
       return locationToStore.concat(valStmts).concat([`(i64.store)`]);
     case "expr":
@@ -86,7 +86,7 @@ function codeGenExpr(expr : Expr, env: GlobalEnv) : Array<string> {
     case "literal":
       return ["(i64.const " + expr.value + ")"];
     case "id":
-      return [`(i64.const ${envLookup(env, expr.name)})`, `i64.load `];
+      return [`(i32.const ${envLookup(env, expr.name)})`, `i64.load `];
     case "binop":
       var binOpArgStmts = codeGenExpr(expr.arg1, env);
       binOpArgStmts = binOpArgStmts.concat(codeGenExpr(expr.arg2, env));
