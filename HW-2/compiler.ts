@@ -69,8 +69,62 @@ function codeGenExpr(expr : Expr) : Array<string> {
       else if(expr.name == "*") {
         binOpArgStmts = binOpArgStmts.concat([`(i64.mul)`]);
       }
+      else if(expr.name == "//") {
+        binOpArgStmts = binOpArgStmts.concat([`(i64.div_s)`]);
+      }
+      else if(expr.name == "%") {
+        binOpArgStmts = binOpArgStmts.concat([`(i64.rem_u)`]);
+      }
+      else if(expr.name == "==") {
+        binOpArgStmts = binOpArgStmts.concat([`(i64.eq)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.extend_i32_u)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.const 4294967296)`])
+        binOpArgStmts = binOpArgStmts.concat([`(i64.add)`])
+      }
+      else if(expr.name == "!=") {
+        binOpArgStmts = binOpArgStmts.concat([`(i64.ne)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.extend_i32_u)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.const 4294967296)`])
+        binOpArgStmts = binOpArgStmts.concat([`(i64.add)`])
+      }
+      else if(expr.name == "<=") {
+        binOpArgStmts = binOpArgStmts.concat([`(i64.le_s)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.extend_i32_u)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.const 4294967296)`])
+        binOpArgStmts = binOpArgStmts.concat([`(i64.add)`])
+      }
+      else if(expr.name == ">=") {
+        binOpArgStmts = binOpArgStmts.concat([`(i64.ge_s)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.extend_i32_u)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.const 4294967296)`])
+        binOpArgStmts = binOpArgStmts.concat([`(i64.add)`])
+      }
+      else if(expr.name == "<") {
+        binOpArgStmts = binOpArgStmts.concat([`(i64.lt_s)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.extend_i32_u)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.const 4294967296)`])
+        binOpArgStmts = binOpArgStmts.concat([`(i64.add)`])
+      }
+      else if(expr.name == ">") {
+        binOpArgStmts = binOpArgStmts.concat([`(i64.gt_s)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.extend_i32_u)`]);
+        binOpArgStmts = binOpArgStmts.concat([`(i64.const 4294967296)`])
+        binOpArgStmts = binOpArgStmts.concat([`(i64.add)`])
+      }
       return binOpArgStmts;
     case "uniop":
-      return codeGenExpr(expr.value);
+      if (expr.name == "-") {
+        var unOpStmts = [`(i64.const -1)`];
+        unOpStmts = unOpStmts.concat(codeGenExpr(expr.value));
+        unOpStmts = unOpStmts.concat([`(i64.mul)`]);
+      }
+      else if (expr.name == "not") {
+        var unOpStmts = [`(i64.const 4294967297)`];
+        unOpStmts = unOpStmts.concat(codeGenExpr(expr.value));
+        unOpStmts = unOpStmts.concat([`(i64.xor)`]);
+        unOpStmts = unOpStmts.concat([`(i64.const 4294967296)`]);
+        unOpStmts = unOpStmts.concat([`(i64.add)`]);
+      }
+      return unOpStmts;
   }
 }
