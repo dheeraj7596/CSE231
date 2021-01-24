@@ -1,7 +1,7 @@
 import {compile} from './compiler';
 import {parse} from './parser';
 
-const input = "abs(5)";
+const input = "i:int = 4";
 const parsed = parse(input);
 console.log(parsed);
 var returnType = "";
@@ -11,7 +11,12 @@ if(lastExpr.tag === "expr") {
 returnType = "(result i64)";
 returnExpr = "(local.get $$last)"
 }
-const compiled = compile(input);
+var localEnv = {
+    globals : new Map(),
+    offset: 0,
+    types : new Map(),
+  }
+const compiled = compile(input, localEnv);
 const wasmSource = `(module
 (func $print (import "imports" "print") (param i64) (result i64))
 (func $abs (import "imports" "abs") (param i64) (result i64))

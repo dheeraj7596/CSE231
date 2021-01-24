@@ -4,6 +4,7 @@ export type Stmt =
   | { tag: "define", name: string, value: Expr }
   | { tag: "expr", expr: Expr }
   | { tag: "globals" }
+  | {tag: "init", name: string, type: Type, value: Expr}
 
 
 export type Expr =

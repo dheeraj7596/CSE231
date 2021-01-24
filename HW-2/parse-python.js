@@ -1,6 +1,6 @@
 const python = require('lezer-python');
 
-const input = "min(5, 9)";
+const input = "i:int = 4";
 
 const tree = python.parser.parse(input);
 

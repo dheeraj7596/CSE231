@@ -65,3 +65,12 @@ describe('parse(source) function', () => {
 
   // TODO: add additional tests here to ensure parse works as expected
 });
+
+describe('parse(source) function', () => {
+  it('parse init', () => {
+    const parsed = parse("i:bool = True");
+    expect(parsed).to.deep.equal([{tag: "init", name: "i", type: "bool", value: {tag: "literal", value: 1 + 2**32, type: "bool"}, }]);
+  });  
+
+  // TODO: add additional tests here to ensure parse works as expected
+});

@@ -101,14 +101,38 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt {
     case "AssignStatement":
       c.firstChild(); // go to name
       const name = s.substring(c.from, c.to);
-      c.nextSibling(); // go to equals
-      c.nextSibling(); // go to value
-      const value = traverseExpr(c, s);
-      c.parent();
-      return {
-        tag: "define",
-        name: name,
-        value: value
+      c.nextSibling(); // go to equals or TypeDef
+      const equalsOrType = s.substring(c.from, c.to);
+      console.log("Type is here", equalsOrType);
+      if (equalsOrType == "=") {
+        c.nextSibling(); // go to value
+        const value = traverseExpr(c, s);
+        c.parent();
+        return {
+          tag: "define",
+          name: name,
+          value: value
+        }
+      } else {
+        c.firstChild();
+        c.nextSibling();
+        const type = s.substring(c.from, c.to);
+        c.parent();
+        c.nextSibling();
+        c.nextSibling()
+        const value = traverseExpr(c, s);
+        c.parent();
+        if (type == "bool" || type == "int") {
+          return {
+            tag: "init",
+            name: name,
+            type: type,
+            value: value
+          }
+        }  
+        else {
+          throw Error("Type other than bool and int appeared.")
+        }
       }
     case "ExpressionStatement":
       c.firstChild();

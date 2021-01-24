@@ -1,5 +1,6 @@
-import { Stmt, Expr } from "./ast";
+import { Stmt, Expr, Type } from "./ast";
 import { parse } from "./parser";
+import { typeCheck } from "./typechecker";
 
 // https://learnxinyminutes.com/docs/wasm/
 
@@ -7,16 +8,25 @@ import { parse } from "./parser";
 export type GlobalEnv = {
   globals: Map<string, number>;
   offset: number;
+  types: Map<string, Type>;
 }
 
 export const emptyEnv = { globals: new Map(), offset: 0 };
 
 export function augmentEnv(env: GlobalEnv, stmts: Array<Stmt>) : GlobalEnv {
   const newEnv = new Map(env.globals);
+  const newTypes = new Map(env.types);
   var newOffset = env.offset;
   stmts.forEach((s) => {
     switch(s.tag) {
       case "define":
+        if (!newEnv.has(s.name)) {
+          newEnv.set(s.name, newOffset);
+          newOffset += 1;
+        }
+        break;
+      case "init":
+        newTypes.set(s.name, s.type);
         newEnv.set(s.name, newOffset);
         newOffset += 1;
         break;
@@ -24,7 +34,8 @@ export function augmentEnv(env: GlobalEnv, stmts: Array<Stmt>) : GlobalEnv {
   })
   return {
     globals: newEnv,
-    offset: newOffset
+    offset: newOffset,
+    types: newTypes
   }
 }
 
@@ -38,6 +49,7 @@ type CompileResult = {
 export function compile(source: string, env: GlobalEnv) : CompileResult {
   const ast = parse(source);
   const withDefines = augmentEnv(env, ast);
+  typeCheck(ast, withDefines);
   const commandGroups = ast.map((stmt) => codeGen(stmt, withDefines));
   const commands = [].concat.apply([], commandGroups);
   console.log("Generated: ", commands.join("\n"));
@@ -71,6 +83,10 @@ function codeGen(stmt: Stmt, env: GlobalEnv) : Array<string> {
         );
       });
       return globalStmts;  
+    case "init":
+      const initLocationToStore = [`(i32.const ${envLookup(env, stmt.name)}) ;; ${stmt.name}`];
+      var valStmts = codeGenExpr(stmt.value, env);
+      return initLocationToStore.concat(valStmts).concat([`(i64.store)`]);
   }
 }
 

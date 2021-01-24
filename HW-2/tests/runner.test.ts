@@ -60,35 +60,41 @@ const importObject = {
 beforeEach(function () {
   importObject.output = "";
 });
+
+var localEnv = {
+  globals : new Map(),
+  offset: 0,
+  types : new Map(),
+}
   
 // We write end-to-end tests here to make sure the compiler works as expected.
 // You should write enough end-to-end tests until you are confident the compiler
 // runs as expected. 
 describe('run(source, config) function', () => {
-  const config = { importObject };
+  const config = { importObject: importObject, env: localEnv };
   
   // We can test the behavior of the compiler in several ways:
   // 1- we can test the return value of a program
   // Note: since run is an async function, we use await to retrieve the 
   // asynchronous return value. 
   it('returns the right number', async () => {
-    const result = await run("987", config);
+    const [result, env] = await run("987", config);
     expect(result).to.equal(BigInt(987));
   });
 
   // 2- we can test the behavior of the compiler by also looking at the log 
   // resulting from running the program
   it('prints something right', async() => {
-    var result = await run("print(1337)", config);
+    var [result, env] = await run("print(1337)", config);
     expect(config.importObject.output).to.equal("1337\n");
   });
 
   // 3- we can also combine both type of assertions, or feel free to use any 
   // other assertions provided by chai.
   it('prints two numbers but returns last one', async () => {
-    var result = await run("print(987)", config);
+    var [result, env] = await run("print(987)", config);
     expect(result).to.equal(BigInt(987));
-    result = await run("print(123)", config);
+    [result, env] = await run("print(123)", config);
     expect(result).to.equal(BigInt(123));
     
     expect(config.importObject.output).to.equal("987\n123\n");
@@ -97,42 +103,42 @@ describe('run(source, config) function', () => {
   // Note: it is often helpful to write tests for a functionality before you
   // implement it. You will make this test pass!
   it('adds two numbers', async() => {
-    const result = await run("2 + 3", config);
+    const [result, env] = await run("2 + 3", config);
     expect(result).to.equal(BigInt(5));
   });
 
   it('subtracts two numbers', async() => {
-    const result = await run("5 - 3", config);
+    const [result, env] = await run("5 - 3", config);
     expect(result).to.equal(BigInt(2));
   });
 
   it('multiplies two numbers', async() => {
-    const result = await run("5 * 3", config);
+    const [result, env] = await run("5 * 3", config);
     expect(result).to.equal(BigInt(15));
   });
 
   it('absolute value of a positive number', async() => {
-    const result = await run("abs(5)", config);
+    const [result, env] = await run("abs(5)", config);
     expect(result).to.equal(BigInt(5));
   });
 
   it('absolute value of a negative number', async() => {
-    const result = await run("abs(-5)", config);
+    const [result, env] = await run("abs(-5)", config);
     expect(result).to.equal(BigInt(5));
   });
 
   it('max value', async() => {
-    const result = await run("max(5, 9)", config);
+    const [result, env] = await run("max(5, 9)", config);
     expect(result).to.equal(BigInt(9));
   });
 
   it('min value', async() => {
-    const result = await run("min(5, 9)", config);
+    const [result, env] = await run("min(5, 9)", config);
     expect(result).to.equal(BigInt(5));
   });
 
   it('power', async() => {
-    const result = await run("pow(2, 3)", config);
+    const [result, env] = await run("pow(2, 3)", config);
     expect(result).to.equal(BigInt(8));
   });
 

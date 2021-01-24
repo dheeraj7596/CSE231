@@ -1,19 +1,30 @@
 import { Stmt, Expr, Type } from "./ast";
+import { GlobalEnv } from "./compiler";
 
-function tcExpr(expr : Expr) : Type {
+function typeEnvLookup(env : GlobalEnv, name : string) : Type {
+  if(!env.types.has(name)) { console.log("Could not find types for " + name + " in types", env); throw new Error("Could not find types for name " + name); }
+  return env.types.get(name);
+}
+
+function tcExpr(expr : Expr, env : GlobalEnv) : Type {
     switch(expr.tag) {
       case "literal":
         return expr.type;
-      case "binop":
-        var arg1Type = tcExpr(expr.arg1);
-        var arg2Type = tcExpr(expr.arg2);
-        if (expr.name == "+") {
-          if (arg1Type != "int" || arg2Type != "int"){
-            throw("Cannot apply operator `+` on types `" + arg1Type + "` and `" + arg2Type + "`");
-          }
-          return arg1Type;
+      case "uniop":
+        var argType = tcExpr(expr.value, env);
+        if (expr.name == "not" && argType != "bool") {
+          throw("Cannot apply operator `not` on type `" + argType + "`");
         }
-        else if (expr.name == "+") {
+        else if (expr.name == "-" && argType != "int") {
+          throw("Cannot apply operator `-` on type `" + argType + "`");
+        }
+        return argType;
+      case "id":
+        return typeEnvLookup(env, expr.name);
+      case "binop":
+        var arg1Type = tcExpr(expr.arg1, env);
+        var arg2Type = tcExpr(expr.arg2, env);
+        if (expr.name == "+") {
           if (arg1Type != "int" || arg2Type != "int"){
             throw("Cannot apply operator `+` on types `" + arg1Type + "` and `" + arg2Type + "`");
           }
@@ -31,11 +42,81 @@ function tcExpr(expr : Expr) : Type {
           }
           return arg1Type;
         }
+        else if (expr.name == "//") {
+          if (arg1Type != "int" || arg2Type != "int"){
+            throw("Cannot apply operator `//` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          }
+          return arg1Type;
+        }
+        else if (expr.name == "%") {
+          if (arg1Type != "int" || arg2Type != "int"){
+            throw("Cannot apply operator `%` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          }
+          return arg1Type;
+        }
+        else if (expr.name == "<=") {
+          if (arg1Type != "int" || arg2Type != "int"){
+            throw("Cannot apply operator `<=` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          }
+          return arg1Type;
+        }
+        else if (expr.name == ">=") {
+          if (arg1Type != "int" || arg2Type != "int"){
+            throw("Cannot apply operator `>=` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          }
+          return arg1Type;
+        }
+        else if (expr.name == "<") {
+          if (arg1Type != "int" || arg2Type != "int"){
+            throw("Cannot apply operator `<` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          }
+          return arg1Type;
+        }
+        else if (expr.name == ">") {
+          if (arg1Type != "int" || arg2Type != "int"){
+            throw("Cannot apply operator `>` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          }
+          return arg1Type;
+        }
         else if (expr.name == "==") {
           if (arg1Type != arg2Type){
             throw("Cannot apply operator `==` on types `" + arg1Type + "` and `" + arg2Type + "`");
           }
-          return arg1Type;
+          return "bool";
+        }
+        else if (expr.name == "!=") {
+          if (arg1Type != arg2Type){
+            throw("Cannot apply operator `!=` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          }
+          return "bool";
         }
     }
   }
+
+function typeCheckStmt(stmt: Stmt, env: GlobalEnv) : void {
+  switch(stmt.tag) {
+    case "define":
+      var exprType = tcExpr(stmt.value, env);
+      var declType = typeEnvLookup(env, stmt.name);
+      if (declType != exprType) {
+        throw("Expected type `" + declType + "`; got type `" + exprType + "`");
+      }
+      break
+    case "expr":
+      var type = tcExpr(stmt.expr, env);
+      break
+    case "init":
+      var exprType = tcExpr(stmt.value, env);
+      var declType = stmt.type;
+      if (declType != exprType) {
+        throw("Expected type `" + declType + "`; got type `" + exprType + "`");
+      }
+      break
+  }
+}
+
+export function typeCheck(stmts: Array<Stmt>, env: GlobalEnv) : void {
+  stmts.forEach(stmt => {
+    typeCheckStmt(stmt, env);
+  });  
+}
