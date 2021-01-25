@@ -86,7 +86,7 @@ describe('run(source, config) function', () => {
   // resulting from running the program
   it('prints something right', async() => {
     var [result, env] = await run("print(1337)", config);
-    expect(config.importObject.output).to.equal("1337\n");
+    expect(result).to.equal(BigInt(1337));
   });
 
   // Note: it is often helpful to write tests for a functionality before you
@@ -141,7 +141,7 @@ describe('run(source, config) function', () => {
     else:
         j = j + 4
     print(j)`, config);
-    expect(config.importObject.output).to.equal("6\n");
+    expect(result).to.equal(BigInt(6));
   });
 
   it('if-elif-else elif test', async() => {
@@ -154,7 +154,7 @@ describe('run(source, config) function', () => {
     else:
         j = j + 4
     print(j)`, config);
-    expect(config.importObject.output).to.equal("7\n");
+    expect(result).to.equal(BigInt(7));
   });
 
   it('if-elif-else else test', async() => {
@@ -167,7 +167,7 @@ describe('run(source, config) function', () => {
     else:
         j = j + 4
     print(j)`, config);
-    expect(config.importObject.output).to.equal("9\n");
+    expect(result).to.equal(BigInt(9));
   });
 
   // TODO: add additional tests here to ensure the compiler runs as expected

@@ -89,9 +89,15 @@ function codeGen(stmt: Stmt, env: GlobalEnv) : Array<string> {
       return initLocationToStore.concat(valStmts).concat([`(i64.store)`]);
     case "if":
       var ifStmts : Array<string> = [];
+      const resultFlag = stmt.ifthn[stmt.ifthn.length - 1].tag === "expr"
       ifStmts = ifStmts.concat(codeGenExpr(stmt.ifcond, env));
       ifStmts = ifStmts.concat([`(i32.wrap_i64)`]);
-      ifStmts = ifStmts.concat([`(if`]);
+      if (resultFlag) {
+        ifStmts = ifStmts.concat([`(if (result i64)`]);
+      }
+      else {
+        ifStmts = ifStmts.concat([`(if`]);
+      }
       ifStmts = ifStmts.concat([`(then`]);
       stmt.ifthn.forEach(element => {
         ifStmts = ifStmts.concat(codeGen(element, env));
@@ -101,7 +107,12 @@ function codeGen(stmt: Stmt, env: GlobalEnv) : Array<string> {
         ifStmts = ifStmts.concat([`(else`]);
         ifStmts = ifStmts.concat(codeGenExpr(stmt.elifcond, env));
         ifStmts = ifStmts.concat([`(i32.wrap_i64)`]);
-        ifStmts = ifStmts.concat([`(if`]);
+        if (resultFlag) {
+          ifStmts = ifStmts.concat([`(if (result i64)`]);
+        }
+        else {
+          ifStmts = ifStmts.concat([`(if`]);
+        }
         ifStmts = ifStmts.concat([`(then`]);
         stmt.elifthn.forEach(element => {
           ifStmts = ifStmts.concat(codeGen(element, env));

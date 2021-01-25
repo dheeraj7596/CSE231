@@ -132,6 +132,21 @@ function typeCheckStmt(stmt: Stmt, env: GlobalEnv) : void {
       stmt.else.forEach(element => {
         typeCheckStmt(element, env);
       });
+
+      const ifLastReturnType = stmt.ifthn[stmt.ifthn.length - 1].tag;
+      var elifLastReturnType = ifLastReturnType;
+      if (stmt.elifthn.length) {
+        elifLastReturnType = stmt.elifthn[stmt.elifthn.length - 1].tag
+      }
+      var elseLastReturnType = ifLastReturnType;
+      if (stmt.else.length) {
+        elseLastReturnType = stmt.else[stmt.else.length - 1].tag;
+      }
+      
+      if (ifLastReturnType != elifLastReturnType || ifLastReturnType != elseLastReturnType) {
+        throw("If-Elif-Else body should return same types");
+      }
+      
       break;
     case "while":
       var whileexprType = tcExpr(stmt.cond, env);
