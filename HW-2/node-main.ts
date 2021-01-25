@@ -3,8 +3,9 @@ import {parse} from './parser';
 
 const input = 
 `
-i:int = 3
-if i == 3:
+i:int = 0
+while i < 3:
+    print(i)
     i = i + 1
 print(i)
     `;

@@ -132,6 +132,16 @@ function typeCheckStmt(stmt: Stmt, env: GlobalEnv) : void {
       stmt.else.forEach(element => {
         typeCheckStmt(element, env);
       });
+      break;
+    case "while":
+      var whileexprType = tcExpr(stmt.cond, env);
+      if (whileexprType != "bool") {
+        throw("Condition expression cannot be of type `" + whileexprType + "`");
+      }
+      stmt.body.forEach(element => {
+        typeCheckStmt(element, env);
+      });
+      break;
   }
 }
 

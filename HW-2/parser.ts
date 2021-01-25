@@ -145,6 +145,8 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt {
       var elifexpr = null;
       const elifBodyStmts = [];
       const elseBodyStmts = [];
+      var elifFlag = false;
+      var elseFlag = false;
 
       c.firstChild(); // if
       c.nextSibling(); // if condition expression
@@ -158,6 +160,7 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt {
       c.parent(); // Getting back to body
       if (c.nextSibling()) {
         if (c.type.name == "elif") {
+          elifFlag = true
           c.nextSibling(); // elif condition expression
           elifexpr = traverseExpr(c, s);
           c.nextSibling(); // elif body
@@ -169,6 +172,7 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt {
           c.parent(); // Getting back to body
         }  
         else if (c.type.name == "else") {
+          elseFlag = true;
           c.nextSibling(); // else body
           c.firstChild(); // colon
           c.nextSibling(); // starting statement
@@ -206,6 +210,14 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt {
         console.log(element)
       });
 
+      if (ifBodyStmts.length == 0) {
+        throw("If Body cannot be empty");
+      } else if (elifFlag && elifBodyStmts.length == 0) {
+        throw("Elif Body cannot be empty");
+      } else if (elseFlag && elseBodyStmts.length == 0) {
+        throw("Else Body cannot be empty");
+      }
+
       return {
         tag: "if",
         ifcond: ifexpr,
@@ -213,6 +225,29 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt {
         elifcond: elifexpr,
         elifthn: elifBodyStmts,
         else: elseBodyStmts
+      }
+    case "WhileStatement":
+      c.firstChild(); // while
+      c.nextSibling(); // while condition expression
+      const whileexpr = traverseExpr(c, s);
+      const whileBodyStmts = []
+      c.nextSibling(); // while body
+      c.firstChild(); // colon
+      c.nextSibling(); // starting statement
+      do {
+        whileBodyStmts.push(traverseStmt(c, s));
+      } while(c.nextSibling())
+      c.parent(); // Getting back to body
+      c.parent();
+
+      if (whileBodyStmts.length == 0) {
+        throw("While Body cannot be empty");
+      }
+      
+      return {
+        tag: "while",
+        cond: whileexpr, 
+        body: whileBodyStmts
       }
 
     default:
