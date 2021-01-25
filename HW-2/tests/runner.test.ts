@@ -89,17 +89,6 @@ describe('run(source, config) function', () => {
     expect(config.importObject.output).to.equal("1337\n");
   });
 
-  // 3- we can also combine both type of assertions, or feel free to use any 
-  // other assertions provided by chai.
-  it('prints two numbers but returns last one', async () => {
-    var [result, env] = await run("print(987)", config);
-    expect(result).to.equal(BigInt(987));
-    [result, env] = await run("print(123)", config);
-    expect(result).to.equal(BigInt(123));
-    
-    expect(config.importObject.output).to.equal("987\n123\n");
-  });
-
   // Note: it is often helpful to write tests for a functionality before you
   // implement it. You will make this test pass!
   it('adds two numbers', async() => {

@@ -5,6 +5,7 @@ export type Stmt =
   | { tag: "expr", expr: Expr }
   | { tag: "globals" }
   | {tag: "init", name: string, type: Type, value: Expr}
+  | {tag: "if", ifcond: Expr, ifthn: Array<Stmt>, elifcond: Expr, elifthn: Array<Stmt>, else: Array<Stmt>}
 
 
 export type Expr =

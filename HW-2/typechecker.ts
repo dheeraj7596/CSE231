@@ -112,6 +112,26 @@ function typeCheckStmt(stmt: Stmt, env: GlobalEnv) : void {
         throw("Expected type `" + declType + "`; got type `" + exprType + "`");
       }
       break
+    case "if":
+      var ifexprType = tcExpr(stmt.ifcond, env);
+      if (ifexprType != "bool") {
+        throw("Condition expression cannot be of type `" + ifexprType + "`");
+      }
+      stmt.ifthn.forEach(element => {
+        typeCheckStmt(element, env);
+      });
+      if (stmt.elifcond != null) {
+        var elifexprType = tcExpr(stmt.elifcond, env);
+        if (elifexprType != "bool") {
+          throw("Condition expression cannot be of type `" + elifexprType + "`");
+        }
+        stmt.elifthn.forEach(element => {
+          typeCheckStmt(element, env);
+        });
+      }
+      stmt.else.forEach(element => {
+        typeCheckStmt(element, env);
+      });
   }
 }
 

@@ -27,7 +27,7 @@ export async function run(source : string, config: any) : Promise<[any, compiler
   var returnType = "";
   var returnExpr = "";
   const lastExpr = parsed[parsed.length - 1]
-  if(lastExpr.tag === "expr") {
+  if(lastExpr.tag === "expr" && !(lastExpr.expr.tag === "builtin1" && lastExpr.expr.name === "print")) {
     returnType = "(result i64)";
   }
   const compiled = compiler.compile(source, config.env);
@@ -37,7 +37,7 @@ export async function run(source : string, config: any) : Promise<[any, compiler
     importObject.js = { memory: memory };
   }
   const wasmSource = `(module
-    (func $print (import "imports" "print") (param i64) (result i64))
+    (func $print (import "imports" "print") (param i64))
     (import "js" "memory" (memory 1))
     (func $abs (import "imports" "abs") (param i64) (result i64))
     (func $max (import "imports" "max") (param i64) (param i64) (result i64))

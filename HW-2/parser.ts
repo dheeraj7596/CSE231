@@ -139,6 +139,82 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt {
       const expr = traverseExpr(c, s);
       c.parent(); // pop going into stmt
       return { tag: "expr", expr: expr }
+    case "IfStatement":
+      var ifexpr = null;
+      const ifBodyStmts = [];
+      var elifexpr = null;
+      const elifBodyStmts = [];
+      const elseBodyStmts = [];
+
+      c.firstChild(); // if
+      c.nextSibling(); // if condition expression
+      ifexpr = traverseExpr(c, s);
+      c.nextSibling(); // if body
+      c.firstChild(); // colon
+      c.nextSibling(); // starting statement
+      do {
+        ifBodyStmts.push(traverseStmt(c, s));
+      } while(c.nextSibling())
+      c.parent(); // Getting back to body
+      if (c.nextSibling()) {
+        if (c.type.name == "elif") {
+          c.nextSibling(); // elif condition expression
+          elifexpr = traverseExpr(c, s);
+          c.nextSibling(); // elif body
+          c.firstChild(); // colon
+          c.nextSibling(); // starting statement
+          do {
+            elifBodyStmts.push(traverseStmt(c, s));
+          } while(c.nextSibling())
+          c.parent(); // Getting back to body
+        }  
+        else if (c.type.name == "else") {
+          c.nextSibling(); // else body
+          c.firstChild(); // colon
+          c.nextSibling(); // starting statement
+          do {
+            elseBodyStmts.push(traverseStmt(c, s));
+          } while(c.nextSibling())
+          c.parent(); // Getting back to body
+        }  
+      }
+      if (c.nextSibling()) {
+        if (c.type.name == "else") {
+          c.nextSibling(); // else body
+          c.firstChild(); // colon
+          c.nextSibling(); // starting statement
+          do {
+            elseBodyStmts.push(traverseStmt(c, s));
+          } while(c.nextSibling())
+          c.parent(); // Getting back to body
+        }  
+      }
+      c.parent();
+
+      console.log("ifexpr", ifexpr)
+      console.log("ifBodyStmts")
+      ifBodyStmts.forEach(element => {
+        console.log(element)
+      });
+      console.log("elifexpr", elifexpr)
+      console.log("elifBodyStmts")
+      elifBodyStmts.forEach(element => {
+        console.log(element)
+      });
+      console.log("elseBodyStmts")
+      elseBodyStmts.forEach(element => {
+        console.log(element)
+      });
+
+      return {
+        tag: "if",
+        ifcond: ifexpr,
+        ifthn: ifBodyStmts,
+        elifcond: elifexpr,
+        elifthn: elifBodyStmts,
+        else: elseBodyStmts
+      }
+
     default:
       throw new Error("Could not parse stmt at " + c.node.from + " " + c.node.to + ": " + s.substring(c.from, c.to));
   }

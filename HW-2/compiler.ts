@@ -87,6 +87,18 @@ function codeGen(stmt: Stmt, env: GlobalEnv) : Array<string> {
       const initLocationToStore = [`(i32.const ${envLookup(env, stmt.name)}) ;; ${stmt.name}`];
       var valStmts = codeGenExpr(stmt.value, env);
       return initLocationToStore.concat(valStmts).concat([`(i64.store)`]);
+    case "if":
+      var ifStmts : Array<string> = [];
+      ifStmts = ifStmts.concat(codeGenExpr(stmt.ifcond, env));
+      ifStmts = ifStmts.concat([`(i32.wrap_i64)`]);
+      ifStmts = ifStmts.concat([`(if`]);
+      ifStmts = ifStmts.concat([`(then`]);
+      stmt.ifthn.forEach(element => {
+        ifStmts = ifStmts.concat(codeGen(element, env));
+      });
+      ifStmts = ifStmts.concat([`)`]) // closing if-then
+      ifStmts = ifStmts.concat([`)`]) // closing if
+      return ifStmts;
   }
 }
 
