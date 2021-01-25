@@ -131,5 +131,44 @@ describe('run(source, config) function', () => {
     expect(result).to.equal(BigInt(8));
   });
 
+  it('if-elif-else if test', async() => {
+    const [result, env] = await run(`i:int = 3
+    j:int = 5
+    if i == 3:
+        j = j + 1
+    elif i == 2:
+        j = j + 2
+    else:
+        j = j + 4
+    print(j)`, config);
+    expect(config.importObject.output).to.equal("6\n");
+  });
+
+  it('if-elif-else elif test', async() => {
+    const [result, env] = await run(`i:int = 2
+    j:int = 5
+    if i == 3:
+        j = j + 1
+    elif i == 2:
+        j = j + 2
+    else:
+        j = j + 4
+    print(j)`, config);
+    expect(config.importObject.output).to.equal("7\n");
+  });
+
+  it('if-elif-else else test', async() => {
+    const [result, env] = await run(`i:int = 7
+    j:int = 5
+    if i == 3:
+        j = j + 1
+    elif i == 2:
+        j = j + 2
+    else:
+        j = j + 4
+    print(j)`, config);
+    expect(config.importObject.output).to.equal("9\n");
+  });
+
   // TODO: add additional tests here to ensure the compiler runs as expected
 });

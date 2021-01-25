@@ -97,6 +97,34 @@ function codeGen(stmt: Stmt, env: GlobalEnv) : Array<string> {
         ifStmts = ifStmts.concat(codeGen(element, env));
       });
       ifStmts = ifStmts.concat([`)`]) // closing if-then
+      if (stmt.elifcond != null) {
+        ifStmts = ifStmts.concat([`(else`]);
+        ifStmts = ifStmts.concat(codeGenExpr(stmt.elifcond, env));
+        ifStmts = ifStmts.concat([`(i32.wrap_i64)`]);
+        ifStmts = ifStmts.concat([`(if`]);
+        ifStmts = ifStmts.concat([`(then`]);
+        stmt.elifthn.forEach(element => {
+          ifStmts = ifStmts.concat(codeGen(element, env));
+        });
+        ifStmts = ifStmts.concat([`)`]) // closing elif-then
+
+        if (stmt.else.length > 0) {
+          ifStmts = ifStmts.concat([`(else`]);
+          stmt.else.forEach(element => {
+            ifStmts = ifStmts.concat(codeGen(element, env));
+          });
+          ifStmts = ifStmts.concat([`)`]) // closing ) corresponding to else
+        }
+        ifStmts = ifStmts.concat([`)`]) // closing elif-condition
+        ifStmts = ifStmts.concat([`)`]) // closing elif-else
+      } 
+      else if (stmt.else.length > 0) {
+        ifStmts = ifStmts.concat([`(else`]);
+        stmt.else.forEach(element => {
+          ifStmts = ifStmts.concat(codeGen(element, env));
+        });
+        ifStmts = ifStmts.concat([`)`]) // closing ) corresponding to else
+      }
       ifStmts = ifStmts.concat([`)`]) // closing if
       return ifStmts;
   }
