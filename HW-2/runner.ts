@@ -25,15 +25,20 @@ export async function run(source : string, config: any) : Promise<[any, compiler
   const wabtInterface = await wabt();
   const parsed = parse(source);
   var returnType = "";
-  var returnExpr = "";
+  var returnExpr1 = "";
+  var returnExpr2 = "";
   const lastExpr = parsed[parsed.length - 1]
+  const compiled = compiler.compile(source, config.env);
   if(lastExpr.tag === "expr") {
     returnType = "(result i64)";
+    returnExpr1 = `(i32.const ${compiler.envLookup(compiled.newEnv, "scratchVar")})`;
+    returnExpr2 = `(i64.load)`;
   } 
-  else if(lastExpr.tag === "if" && lastExpr.ifthn[lastExpr.ifthn.length - 1].tag === "expr") {
-    returnType = "(result i64)";
-  }
-  const compiled = compiler.compile(source, config.env);
+  // else if(lastExpr.tag === "if" && lastExpr.ifthn[lastExpr.ifthn.length - 1].tag === "expr") {
+  //   returnType = "(result i64)";
+  //   returnExpr1 = `(i32.const ${compiler.envLookup(compiled.newEnv, "scratchVar")})`;
+  //   returnExpr2 = `(i64.load)`;
+  // }
   const importObject = config.importObject;
   if(!importObject.js) {
     const memory = new WebAssembly.Memory({initial:10, maximum:100});
@@ -48,6 +53,8 @@ export async function run(source : string, config: any) : Promise<[any, compiler
     (func $pow (import "imports" "pow") (param i64) (param i64) (result i64))
     (func (export "exported_func") ${returnType}
       ${compiled.wasmSource}
+      ${returnExpr1}
+      ${returnExpr2}
     )
   )`;
   console.log("Generated whole code: ", wasmSource);

@@ -17,6 +17,9 @@ export function augmentEnv(env: GlobalEnv, stmts: Array<Stmt>) : GlobalEnv {
   const newEnv = new Map(env.globals);
   const newTypes = new Map(env.types);
   var newOffset = env.offset;
+  newEnv.set("scratchVar", newOffset);
+  newTypes.set("scratchVar", "int");
+  newOffset += 1
   stmts.forEach((s) => {
     switch(s.tag) {
       case "define":
@@ -59,7 +62,7 @@ export function compile(source: string, env: GlobalEnv) : CompileResult {
   };
 }
 
-function envLookup(env : GlobalEnv, name : string) : number {
+export function envLookup(env : GlobalEnv, name : string) : number {
   if(!env.globals.has(name)) { console.log("Could not find " + name + " in ", env); throw new Error("Could not find name " + name); }
   return (env.globals.get(name) * 8); // 4-byte values
 }
@@ -71,7 +74,9 @@ function codeGen(stmt: Stmt, env: GlobalEnv) : Array<string> {
       var valStmts = codeGenExpr(stmt.value, env);
       return locationToStore.concat(valStmts).concat([`(i64.store)`]);
     case "expr":
-      return codeGenExpr(stmt.expr, env);
+      var exprStmts = codeGenExpr(stmt.expr, env);
+      const scratchLocationToStore = [`(i32.const ${envLookup(env, "scratchVar")}) ;; $scratchVar`];
+      return scratchLocationToStore.concat(exprStmts).concat([`(i64.store)`]);
     case "globals":
       var globalStmts : Array<string> = [];
       env.globals.forEach((pos, name) => {
@@ -93,7 +98,8 @@ function codeGen(stmt: Stmt, env: GlobalEnv) : Array<string> {
       ifStmts = ifStmts.concat(codeGenExpr(stmt.ifcond, env));
       ifStmts = ifStmts.concat([`(i32.wrap_i64)`]);
       if (resultFlag) {
-        ifStmts = ifStmts.concat([`(if (result i64)`]);
+        // ifStmts = ifStmts.concat([`(if (result i64)`]);
+        ifStmts = ifStmts.concat([`(if`]);
       }
       else {
         ifStmts = ifStmts.concat([`(if`]);
@@ -108,7 +114,8 @@ function codeGen(stmt: Stmt, env: GlobalEnv) : Array<string> {
         ifStmts = ifStmts.concat(codeGenExpr(stmt.elifcond, env));
         ifStmts = ifStmts.concat([`(i32.wrap_i64)`]);
         if (resultFlag) {
-          ifStmts = ifStmts.concat([`(if (result i64)`]);
+          // ifStmts = ifStmts.concat([`(if (result i64)`]);
+          ifStmts = ifStmts.concat([`(if`]);
         }
         else {
           ifStmts = ifStmts.concat([`(if`]);
