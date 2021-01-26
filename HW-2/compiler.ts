@@ -89,7 +89,7 @@ function codeGen(stmt: Stmt, env: GlobalEnv) : Array<string> {
       return initLocationToStore.concat(valStmts).concat([`(i64.store)`]);
     case "if":
       var ifStmts : Array<string> = [];
-      const resultFlag = stmt.ifthn[stmt.ifthn.length - 1].tag === "expr"
+      const resultFlag = stmt.ifthn[stmt.ifthn.length - 1].tag === "expr";
       ifStmts = ifStmts.concat(codeGenExpr(stmt.ifcond, env));
       ifStmts = ifStmts.concat([`(i32.wrap_i64)`]);
       if (resultFlag) {
@@ -138,6 +138,29 @@ function codeGen(stmt: Stmt, env: GlobalEnv) : Array<string> {
       }
       ifStmts = ifStmts.concat([`)`]) // closing if
       return ifStmts;
+    case "while":
+      var whileStmts : Array<string> = []; 
+      whileStmts = whileStmts.concat([`(block`]);
+      whileStmts = whileStmts.concat([`(loop`]);
+      // starting if while condition
+      whileStmts = whileStmts.concat(codeGenExpr(stmt.cond, env));
+      whileStmts = whileStmts.concat([`(i32.wrap_i64)`]);
+      whileStmts = whileStmts.concat([`(if`]);
+      whileStmts = whileStmts.concat([`(then`]);
+      stmt.body.forEach(element => {
+        whileStmts = whileStmts.concat(codeGen(element, env));
+      });
+      whileStmts = whileStmts.concat([`)`]) // closing if-then
+      whileStmts = whileStmts.concat([`)`]) // closing if
+
+      whileStmts = whileStmts.concat([`(br_if 0`]) // starting while condition
+      whileStmts = whileStmts.concat(codeGenExpr(stmt.cond, env));
+      whileStmts = whileStmts.concat([`(i32.wrap_i64)`]);
+      whileStmts = whileStmts.concat([`)`]) // closing br_if
+      whileStmts = whileStmts.concat([`(br 1)`]) // breaking
+      whileStmts = whileStmts.concat([`)`]) // closing loop
+      whileStmts = whileStmts.concat([`)`]) // closing block
+      return whileStmts;
   }
 }
 
@@ -153,7 +176,7 @@ function codeGenExpr(expr : Expr, env: GlobalEnv) : Array<string> {
     case "literal":
       return ["(i64.const " + expr.value + ")"];
     case "id":
-      return [`(i32.const ${envLookup(env, expr.name)})`, `i64.load `];
+      return [`(i32.const ${envLookup(env, expr.name)})`, `(i64.load)`];
     case "binop":
       var binOpArgStmts = codeGenExpr(expr.arg1, env);
       binOpArgStmts = binOpArgStmts.concat(codeGenExpr(expr.arg2, env));

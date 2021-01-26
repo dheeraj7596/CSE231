@@ -3,11 +3,10 @@ import {parse} from './parser';
 
 const input = 
 `
-i:int = 0
-while i < 3:
-    print(i)
-    i = i + 1
-print(i)
+x:int = 3
+while x<1:
+    x = x + 1
+print(x)
     `;
 const parsed = parse(input);
 console.log("Parsed", parsed);

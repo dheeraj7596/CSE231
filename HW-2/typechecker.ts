@@ -58,25 +58,25 @@ function tcExpr(expr : Expr, env : GlobalEnv) : Type {
           if (arg1Type != "int" || arg2Type != "int"){
             throw("Cannot apply operator `<=` on types `" + arg1Type + "` and `" + arg2Type + "`");
           }
-          return arg1Type;
+          return "bool";
         }
         else if (expr.name == ">=") {
           if (arg1Type != "int" || arg2Type != "int"){
             throw("Cannot apply operator `>=` on types `" + arg1Type + "` and `" + arg2Type + "`");
           }
-          return arg1Type;
+          return "bool";
         }
         else if (expr.name == "<") {
           if (arg1Type != "int" || arg2Type != "int"){
             throw("Cannot apply operator `<` on types `" + arg1Type + "` and `" + arg2Type + "`");
           }
-          return arg1Type;
+          return "bool";
         }
         else if (expr.name == ">") {
           if (arg1Type != "int" || arg2Type != "int"){
             throw("Cannot apply operator `>` on types `" + arg1Type + "` and `" + arg2Type + "`");
           }
-          return arg1Type;
+          return "bool";
         }
         else if (expr.name == "==") {
           if (arg1Type != arg2Type){
