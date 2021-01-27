@@ -4,6 +4,7 @@
 // - https://developer.mozilla.org/en-US/docs/WebAssembly/Using_the_JavaScript_API
 
 import wabt from 'wabt';
+import { Stmt } from './ast';
 import * as compiler from './compiler';
 import {parse} from './parser';
 
@@ -21,6 +22,21 @@ if(typeof process !== "undefined") {
   };
 }
 
+function isVoidCallLast(stmt: Stmt, env: compiler.GlobalEnv) : boolean {
+  if (stmt.tag == "expr" && stmt.expr.tag == "call") {
+    const dummy = env.funcDef.get(stmt.expr.name)
+    if (dummy.tag != "funcdef") { // Always condition true
+      throw Error("Function is not inside call method.");
+    }  
+    if (dummy.return == "none") {
+      return true;
+    } 
+    else {
+      return false;
+    }
+  }
+}
+
 export async function run(source : string, config: any) : Promise<[any, compiler.GlobalEnv]> {
   const wabtInterface = await wabt();
   const parsed = parse(source);
@@ -29,7 +45,7 @@ export async function run(source : string, config: any) : Promise<[any, compiler
   var returnExpr2 = "";
   const lastExpr = parsed[parsed.length - 1]
   const compiled = compiler.compile(source, config.env);
-  if(lastExpr.tag === "expr") {
+  if(lastExpr.tag === "expr" && !(isVoidCallLast(lastExpr, compiled.newEnv))) {
     returnType = "(result i64)";
     returnExpr1 = `(i32.const ${compiler.envLookup(compiled.newEnv, "scratchVar")})`;
     returnExpr2 = `(i64.load)`;
@@ -51,6 +67,7 @@ export async function run(source : string, config: any) : Promise<[any, compiler
     (func $max (import "imports" "max") (param i64) (param i64) (result i64))
     (func $min (import "imports" "min") (param i64) (param i64) (result i64))
     (func $pow (import "imports" "pow") (param i64) (param i64) (result i64))
+    ${compiled.newEnv.funcStr}
     (func (export "exported_func") ${returnType}
       ${compiled.wasmSource}
       ${returnExpr1}

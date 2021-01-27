@@ -2,10 +2,15 @@ const python = require('lezer-python');
 
 const input = 
 `
-i:int = 0
-while i < 3:
-    print(i)
-    i = i + 1
+def contains(y:int, x:int, z:int) -> bool:
+    i:int = 0
+    j: int = 4
+    return False
+
+y:int = 0
+x:int = 1
+z:int = 5
+contains(y, x, z)
     `;
 
 const tree = python.parser.parse(input);

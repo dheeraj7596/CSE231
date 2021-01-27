@@ -65,6 +65,10 @@ var localEnv = {
   globals : new Map(),
   offset: 0,
   types : new Map(),
+  functypes: new Map(), 
+  funcDef: new Map(), 
+  funcStr: "",  
+  localVars: new Set()
 }
   
 // We write end-to-end tests here to make sure the compiler works as expected.
@@ -168,6 +172,25 @@ describe('run(source, config) function', () => {
         j = j + 4
     print(j)`, config);
     expect(result).to.equal(BigInt(9));
+  });
+
+  it('function', async() => {
+    const [result, env] = await run(`
+    def contains(y:int, x:int, z:int) -> int:
+      i:int = 01
+      if i == 0:
+          i = 243
+      else:
+          i = 3
+      while i < 10:
+          i = i + 1
+      return i
+    y:int = 0
+    x:int = 1
+    z:int = 2
+    contains(y, x, z)
+    `, config);
+    expect(result).to.equal(BigInt(10));
   });
 
   // TODO: add additional tests here to ensure the compiler runs as expected

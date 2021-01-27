@@ -18,7 +18,11 @@ export class BasicREPL {
     this.currentEnv = {
       globals: new Map(),
       offset: 0,
-      types: new Map()
+      types: new Map(),
+      functypes: new Map(),
+      funcDef: new Map(),
+      funcStr: "",
+      localVars: new Set()
     };
   }
   async run(source : string) : Promise<any> {

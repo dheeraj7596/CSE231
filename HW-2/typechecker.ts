@@ -1,5 +1,5 @@
 import { Stmt, Expr, Type } from "./ast";
-import { GlobalEnv } from "./compiler";
+import { emptyEnv, GlobalEnv } from "./compiler";
 
 function typeEnvLookup(env : GlobalEnv, name : string) : Type {
   if(!env.types.has(name)) { console.log("Could not find types for " + name + " in types", env); throw new Error("Could not find types for name " + name); }
@@ -90,6 +90,25 @@ function tcExpr(expr : Expr, env : GlobalEnv) : Type {
           }
           return "bool";
         }
+        break;
+      case "call":
+        const funcDefStmt = env.funcDef.get(expr.name)
+        if (funcDefStmt.tag != "funcdef") {
+          throw Error("Function not found in funcdef map. Found " + funcDefStmt.tag);
+        }
+        if (funcDefStmt.parameters.length != expr.arguments.length) {
+          throw Error("Expected " + funcDefStmt.parameters.length + " arguments; got " + expr.arguments.length);
+        }
+        const funcReturnType = funcDefStmt.return;
+        for (let index = 0; index < expr.arguments.length; index++) {
+          const argExpr = expr.arguments[index];
+          const argtype = tcExpr(argExpr, env);
+          const expectedArgType = funcDefStmt.parameters[index].type;
+          if (argtype != expectedArgType) {
+            throw Error("Expected type `" + expectedArgType + "`; got type `" + argtype + "` in parameter " + index);
+          }
+        }
+        return funcReturnType;
     }
   }
 
@@ -156,6 +175,48 @@ function typeCheckStmt(stmt: Stmt, env: GlobalEnv) : void {
       stmt.body.forEach(element => {
         typeCheckStmt(element, env);
       });
+      break;
+    case "funcdef":
+      const returnType = stmt.return;
+      const funcName = stmt.name;
+      var localEnv = new Map(env.types);
+      stmt.decls.forEach(element => {
+        if (element.tag == "init") {
+          localEnv.set(element.name, element.type);
+        }
+      });
+      stmt.parameters.forEach(element => {
+        localEnv.set(element.name, element.type);
+      });
+
+      // wrapping localEnv into GlobalEnv object
+      const wrappedLocalEnv = emptyEnv;
+      wrappedLocalEnv.types = localEnv;
+      wrappedLocalEnv.functypes = env.functypes;
+      wrappedLocalEnv.funcDef = env.funcDef;
+
+      // checking declarations
+      stmt.decls.forEach(element => {
+        typeCheckStmt(element, wrappedLocalEnv);
+      });
+
+      // checking body statements
+      
+      // var returnTypeInCode = "none";
+      // stmt.body.forEach(element => {
+      //   if (element.tag == "return") {
+      //     returnTypeInCode = tcExpr(element.value, wrappedLocalEnv);
+      //   }
+      //   typeCheckStmt(element, wrappedLocalEnv);
+      // });
+
+      // // checking returntype mentioned is same as returntype in the code.
+      // if (returnTypeInCode != returnType) {
+      //   throw("Expected type `" + returnType + "`; got type `" + returnTypeInCode + "`");
+      // }
+
+      // setting the type map into functypes
+      env.functypes.set(funcName, localEnv);
       break;
   }
 }

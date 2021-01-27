@@ -1,6 +1,6 @@
 import {parser} from "lezer-python";
 import {TreeCursor} from "lezer-tree";
-import {Expr, Stmt} from "./ast";
+import {Expr, Stmt, Parameter} from "./ast";
 
 export function traverseExpr(c : TreeCursor, s : string) : Expr {
   switch(c.type.name) {
@@ -49,7 +49,7 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr {
           arg: arg
         };
       }
-      else {
+      else if (callName == "max" || callName == "min" || callName == "pow"){
         c.nextSibling(); // go to arglist
         c.firstChild(); // go into arglist
         c.nextSibling(); // find first argument in arglist
@@ -64,6 +64,29 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr {
           name: callName,
           arg1: arg1,
           arg2: arg2
+        };
+      }
+      else {
+        c.nextSibling(); // go to arglist
+        c.firstChild(); // go into arglist, handling (
+        c.nextSibling(); // find first argument in arglist
+        const args: Expr[] = [];
+        while (c.node.name != ")") {
+          const arg = traverseExpr(c, s);
+          c.nextSibling(); // comma or )
+          if (c.node.name == ",") {
+            c.nextSibling();
+          }
+          console.log("Pushed argument " + arg.tag);
+          args.push(arg);
+        }
+        c.parent(); // pop arglist
+        c.parent(); // pop CallExpression
+
+        return {
+          tag: "call",
+          name: callName,
+          arguments: args,
         };
       }
     case "BinaryExpression":
@@ -249,11 +272,102 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt {
         cond: whileexpr, 
         body: whileBodyStmts
       }
+    case "FunctionDefinition":
+      c.firstChild();  // Focus on def
+      c.nextSibling(); // Focus on name of function
+      const funcName = s.substring(c.from, c.to);
+      c.nextSibling(); // Focus on ParamList
+      var parameters = traverseParameters(c, s);
+      c.nextSibling(); // Focus on returntype or Body
+      var returntype = "none";
+      if(c.type.name == "TypeDef") {
+        c.firstChild();
+        returntype = s.substring(c.from, c.to);
+        c.parent();
+        c.nextSibling(); // Focus on Body
+      } 
 
+      if (returntype != "int" && returntype != "bool" && returntype != "none") {
+        throw Error(`Unknown function return type ` + returntype);
+      }
+      
+      c.firstChild();  // Focus on :
+      c.nextSibling(); // starting statement
+      
+      const decls: Stmt[] = []
+      const funcBodyStmts: Stmt[] = []
+      const allBodyStmts = []
+      do {
+        console.log("Traversing statement " + s.substring(c.from, c.to));
+        allBodyStmts.push(traverseStmt(c, s));
+      } while(c.nextSibling())
+
+      allBodyStmts.forEach(element => {
+        if (element.tag == "init") {
+          if (funcBodyStmts.length > 0){
+            throw Error("Declaration of variables after function body is not allowed.")
+          }
+
+          decls.push(element);
+        }
+        else {
+          funcBodyStmts.push(element);
+        }
+      });
+
+      c.parent();      // Pop to Body
+      c.parent();      // Pop to FunctionDefinition
+      return {
+        tag: "funcdef",
+        name: funcName,
+        decls: decls,
+        parameters: parameters,
+        body: funcBodyStmts,
+        return: returntype
+      }
+    case "ReturnStatement":
+      c.firstChild();  // Focus return keyword
+      c.nextSibling(); // Focus expression
+      var value = traverseExpr(c, s);
+      c.parent();
+      return { tag: "return", value: value };
     default:
       throw new Error("Could not parse stmt at " + c.node.from + " " + c.node.to + ": " + s.substring(c.from, c.to));
   }
 }
+
+
+export function traverseParameters(c : TreeCursor, s : string) : Array<Parameter> {
+  c.firstChild();  // Focuses on open paren
+  c.nextSibling(); // Focuses on a VariableName
+  const params: Parameter[] = [];
+  while (c.type.name != ")") {
+    let name = s.substring(c.from, c.to);
+    c.nextSibling(); // Focus on TypeDef
+    c.firstChild(); // Colon
+    c.nextSibling(); // variable type
+    let type = s.substring(c.from, c.to);
+    if (type != "int" && type != "bool") {
+      throw Error(`Function parameter of unknown type ` + type);
+    }
+    console.log("Added parameter: ", {
+      name: name,
+      type: type
+    })
+    params.push({
+      name: name,
+      type: type
+    })
+    c.parent();
+    c.nextSibling();
+    if (c.type.name == ",") {
+      c.nextSibling();
+    }
+  }
+  c.parent();      // Pop to ParamList
+  return params;
+}
+
 
 export function traverse(c : TreeCursor, s : string) : Array<Stmt> {
   switch(c.node.type.name) {

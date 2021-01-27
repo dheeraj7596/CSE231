@@ -3,10 +3,15 @@ import {parse} from './parser';
 
 const input = 
 `
-x:int = 3
-while x<1:
-    x = x + 1
-print(x)
+def contains(y:int, x:int, z:int) -> bool:
+    i:int = 0
+    j: int = 4
+    return False
+
+y:int = 0
+x:int = 1
+z:int = 5
+contains(y, x, z)
     `;
 const parsed = parse(input);
 console.log("Parsed", parsed);

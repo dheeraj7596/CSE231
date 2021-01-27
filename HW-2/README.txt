@@ -1,16 +1,94 @@
-1. Three examples of Python programs that have different behavior than my compiler are:
-(a) max(-1, -3)
-(b) min(-1, -3)
-(c) pow(4, -3)
-This is because my compiler currently assumes i32 as parameters for these functions and assumes values to be positive. 
-Since the negative inputs are parsed differently into UnaryExpression, I need to extend the functionality to negative inputs as well by parsing UnaryExpression properly. 
-Currently, my compiler handles negative numbers for absolute value function because I did a hack by parsing it but considering only the value and ignoring the sign, which is enough to compute correct absolute value.
+Example codes:
 
-2. It took me 5-6 hours to finish the assignment. The binary operation part and the absolute value took longer time compared to others. It is because I got accustomed to code with the binary operation part and figured out implementing built-in functions during the absolute function part.
+TODOS:
+1. Recursive return check
+2. renderResult returning 1/0 for True, False
 
-3. Nothing, all has been well fortunately.
+2.  Example of a program that uses
+        At least one global variable
+        At least one function with a parameter
+        At least one variable defined inside a function
 
-4. The readings mentioned in the course website. I didn't use anything else other than these.
+    def func(y:int, x:int, z:int) -> int:
+        i:int = 1
+        i = i + a
+        return i
 
-5. None
+    a:int = 9
+    y:int = 0
+    x:int = 1
+    z:int = 2
 
+    func(y, x, z)
+
+def func(n:int) -> int:  
+    return n + 2
+
+3. Python program that goes into an infinite loop
+    
+    i: int = 1
+    while i > 0:
+        i = i + 1
+
+4.  (a.) A function defined in the main program and later called from the interactive prompt
+        def isEven(n:int) -> bool:
+            if n %2 == 0:
+                return True
+            else:
+                return False
+
+    (b.) A function defined at the interactive prompt, whose body contains a call to a function
+        TODO
+
+    (c.) A program that has a type error because of a mismatch of booleans and integers on one of the arithmetic operations
+        i:int = 0
+        j:bool = True
+        k:int = 5
+        k = i + j
+
+    (d.) A program that has a type error in a conditional position
+        i:int = 0
+        j:bool = True
+        if i == j:
+            print(45)
+
+    (e.) A program that calls a function from within a loop
+        def isEven(n:int) -> bool:
+            if n %2 == 0:
+                return True
+            else:
+                return False
+
+        i: int = 0
+        while i < 10:
+            print(isEven(i))
+            i = i + 1
+
+    (f.) Printing an integer and a boolean
+        print(5 == 2)
+        print(5 == 5)
+        print(98)
+
+    (g.) A recursive function.
+        def Fibonacci(n:int) -> int: 
+            if n==0: 
+                return 0
+            elif n==1: 
+                return 1
+            else: 
+                return Fibonacci(n-1)+Fibonacci(n-2)
+    
+    (h.) Two mutually-recursive functions.
+
+        def isEven(n:int) -> bool:
+            if n %2 == 0:
+                return True
+            else:
+                return isOdd(n-1)
+
+
+        def isOdd(n:int) -> bool:
+            if n%2 == 0:
+                return False
+            else:
+                return isEven(n-1)
