@@ -91,6 +91,21 @@ function webStart() {
       if(result === undefined) { console.log("skip"); return; }
       const elt = document.createElement("pre");
       document.getElementById("output").appendChild(elt);
+
+      if (BigInt(result) >= 2**32 && BigInt(result) < 2**33) {
+        // Bools are added with 2^32.
+        result = BigInt(result) & BigInt(1);
+        if (result == 1) {
+          result = "True";
+        }
+        else if (result == 0) {
+          result = "False";
+        }
+        else {
+          throw Error("Something other than True/False appeared.")
+        }
+      }
+
       elt.innerText = String(result);
     }
 
