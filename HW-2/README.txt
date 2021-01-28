@@ -5,17 +5,15 @@ Example codes:
         At least one function with a parameter
         At least one variable defined inside a function
 
-    def func(y:int, x:int, z:int) -> int:
+    def func(y:int) -> int:
         i:int = 1
         i = i + a
         return i
 
     a:int = 9
     y:int = 0
-    x:int = 1
-    z:int = 2
 
-    func(y, x, z)
+    func(y)
 
 def func(n:int) -> int:  
     return n + 2
