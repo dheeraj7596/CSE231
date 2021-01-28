@@ -1,0 +1,7 @@
+Recursively check for return statement (asap fix)
+Checking body statements in a function
+no-op inside if
+function call to a function that doesn't exist yet is not handled.
+redeclaring function throws error.
+Typechecking or compiling only when the function is called.
+Typechecking function body statements

@@ -1,9 +1,5 @@
 Example codes:
 
-TODOS:
-1. Recursive return check
-2. renderResult returning 1/0 for True, False
-
 2.  Example of a program that uses
         At least one global variable
         At least one function with a parameter
@@ -38,7 +34,17 @@ def func(n:int) -> int:
                 return False
 
     (b.) A function defined at the interactive prompt, whose body contains a call to a function
-        TODO
+        def isEven(n:int) -> bool:
+            if n %2 == 0:
+                return True
+            else:
+                return False
+        
+        def isOdd(n:int) -> bool:
+            if isEven(n):
+                return False
+            else:
+                return True
 
     (c.) A program that has a type error because of a mismatch of booleans and integers on one of the arithmetic operations
         i:int = 0
@@ -79,6 +85,7 @@ def func(n:int) -> int:
                 return Fibonacci(n-1)+Fibonacci(n-2)
     
     (h.) Two mutually-recursive functions.
+        Adapted from: http://www.idc-online.com/technical_references/pdfs/information_technology/Mutual_Recursion_in_Python.pdf
 
         def isEven(n:int) -> bool:
             if n %2 == 0:
