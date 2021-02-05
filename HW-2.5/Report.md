@@ -618,3 +618,542 @@ The way they check whether init cames before is interesting and would like to ad
 4. **What’s one improvement you recommend this author makes to their compiler based on reviewing it?**
 
 Better keep track of declaration statements and use env to keep track of function local variables and global variables.
+
+
+## **Submission 61875546**
+
+## 1. For each of the compilers you are reviewing, choose two programs that run successfully
+
+
+**Program-1:**
+
+```python
+i:int = 4
+while i > 0:
+    i = i - 1
+print(i)
+```
+
+The ast that is required for while-statement is mentioned below. Note that, this is not the complete ast.
+
+```javascript
+export type Stmt = { tag: "while", expr: Expr, stmts: Array<Stmt> }
+
+export type Expr =
+    { tag: "literal", value: Literal }
+  | { tag: "id", name: VarName }
+  | { tag: "binaryop", expr1: Expr, expr2: Expr, op: Op}
+  | { tag: "unaryop", expr: Expr, op: Op}
+  | { tag: "call", name: VarName, args: Array<Expr> }
+
+export type VarName = string
+export type Op = string
+export type Type = string
+
+export type Literal = 
+    { tag: "None" }
+  | { tag: "True" }
+  | { tag: "False" }
+  | { tag: "number", value: number }
+```
+
+The parser parses it and adds into the ast of while statement. The relevant snippet of parser is attached below:
+
+```javascript
+case "WhileStatement": {
+      c.firstChild();  // while
+      c.nextSibling();  // expr
+      const expr = traverseExpr(c, s);
+      c.nextSibling();  // Body
+      c.firstChild();
+      c.nextSibling();
+      const stmts = [];
+      do {
+        stmts.push(traverseStmt(c, s));
+      } while (c.nextSibling())
+      c.parent();  // Body
+      c.parent();  // WhileStatement
+      return {tag: "while", expr, stmts};
+    }
+```
+
+The typechecker returns `TypedExpr` which contains expression and its type. It is defined as follows:
+
+```javascript
+export type TypedExpr = {
+  expr: Expr,
+  type: ClassType,
+}
+```
+
+The typechecking corresponding to while statement is as follows:
+
+```javascript
+case "while": {
+      let t = tcExpr(s.expr);
+      if (t.type.name !== "bool") {
+        throw new Error("Expect bool type, get type " + t.type.name);
+      }
+
+      return;
+    }
+```
+
+The `codeGenStmt` code corresponding to while is as follows:
+```javascript
+case "while": {
+      wasms = wasms.concat(
+        [`(block \n(loop`],
+        codeGenExpr(s.expr),
+        [`(i32.const 1)`, `(i32.xor)`, `(br_if 1)`],
+      )
+      s.stmts.forEach(stmt => {
+        wasms = wasms.concat(codeGenStmt(stmt));
+      });
+      wasms = wasms.concat(
+        [`(br 0)\n)\n)`]
+      )
+      break;
+    }
+```
+The `codeGenExpr` generates code for the condition expression. The code for `codeGenExpr` corresponding to binary operation is as follows:
+
+```javascript
+case "binaryop": {
+      const expr1Stmts = codeGenExpr(expr.expr1);
+      const expr2Stmts = codeGenExpr(expr.expr2);
+      wasms = wasms.concat(
+        expr1Stmts,
+        expr2Stmts,
+        binaryOpToWASM.get(expr.op),
+      )
+      break;
+    }
+```
+
+Here the `binaryOpToWASM` is a mapping from operation to its corresponding statement in wasm as below:
+
+```javascript
+export const binaryOpToWASM: Map<string,Array<string>> = new Map([
+  .
+  .
+  .
+  ["+", ["(i32.add)"]],
+  ["-", ["(i32.sub)"]],
+  ["*", ["(i32.mul)"]],
+  .
+  .
+  .
+
+])
+```
+
+**Program-2:**
+
+```python
+def foo() -> bool:
+  return True
+
+foo()
+```
+
+The ast that is required for function definition and calling is mentioned below.
+
+```javascript
+export type Program = { 
+  defs: PreDef,
+  stmts: Array<Stmt> 
+}
+
+export type PreDef = {
+  varDefs: Array<VarDef>, 
+  funcDefs: Array<FuncDef>, 
+}
+
+export type VarDef = { tvar: TypedVar, value: Literal }
+export type TypedVar = { name: VarName, type: Type}
+
+export type FuncDef = {
+  name: VarName,
+  params: Array<TypedVar>,
+  retType: Type,
+  body: FuncBody,
+}
+
+export type FuncBody = {
+  defs: PreDef,
+  stmts: Array<Stmt>
+}
+
+export type Stmt =
+    { tag: "assign", name: VarName, value: Expr }
+  | { tag: "if", exprs: Array<Expr>, blocks: Array<Array<Stmt>> }
+  | { tag: "while", expr: Expr, stmts: Array<Stmt> }
+  | { tag: "pass" }
+  | { tag: "return", expr: Expr }
+  | { tag: "expr", expr: Expr }
+
+export type Expr =
+    { tag: "literal", value: Literal }
+  | { tag: "id", name: VarName }
+  | { tag: "binaryop", expr1: Expr, expr2: Expr, op: Op}
+  | { tag: "unaryop", expr: Expr, op: Op}
+  | { tag: "call", name: VarName, args: Array<Expr> }
+
+export type VarName = string
+export type Op = string
+export type Type = string
+
+export type Literal = 
+    { tag: "None" }
+  | { tag: "True" }
+  | { tag: "False" }
+  | { tag: "number", value: number }
+```
+
+As we can observe, they have separated function definitions from normal definitions.
+They parse function definitions and normal variable definitions first before parsing any other statements as shown below:
+
+```javascript
+export function traverse(c : TreeCursor, s : string) : Program {
+  switch(c.node.type.name) {
+    case "Script":
+      c.firstChild();
+      const [defs, end] = traverseDefs(c, s);
+      const stmts: Array<Stmt> = [];
+      if (!end) {
+        return {defs, stmts};
+      }
+      do {
+        stmts.push(traverseStmt(c, s));
+      } while(c.nextSibling())
+      console.log("traversed " + stmts.length + " statements ", stmts, "stopped at " , c.node);
+      return {defs, stmts};
+    default:
+      throw new Error("Could not parse program at " + c.node.from + " " + c.node.to);
+  }
+}
+```
+
+This `traverseDefs` calls `traverseFuncDef` which parses function definition. 
+```javascript
+export function traverseFuncDef(c : TreeCursor, s : string) : FuncDef {
+  c.firstChild();  // def
+  c.nextSibling();  // VariableName
+  const name = s.substring(c.from, c.to);
+  const params = [];
+  c.nextSibling();  // ParamList
+  c.firstChild();  // (
+  c.nextSibling();  // VariableName
+  while (c.node.type.name != ")") {
+    params.push(traverseTypedVar(c, s))
+    c.nextSibling();  // , | )
+    c.nextSibling();
+  }
+  c.parent();  // ParamList
+  c.nextSibling();  // TypeDef or Body
+
+  let retType = "<None>";
+  if (c.type.name === "TypeDef") {
+    c.firstChild();  // VariableName
+    retType = s.substring(c.from, c.to);
+    c.parent();  // TypeDef
+    c.nextSibling();  // Body
+  }
+  
+  const body = traverseFuncBody(c, s);
+  c.parent();
+
+  return {name, params, retType, body};
+}
+```
+
+The snippet relevant to parsing call expression is shown below:
+```javascript
+case "CallExpression": {
+      c.firstChild();
+      const name = s.substring(c.from, c.to);
+      c.nextSibling(); // go to arglist
+      c.firstChild(); // go into arglist
+      const args = [];
+      while (c.nextSibling() && c.node.type.name !== ")") {
+        args.push(traverseExpr(c, s));
+        c.nextSibling(); 
+      }
+      c.parent(); // pop arglist
+      c.parent(); // pop CallExpression
+      return {
+        tag: "call", name, args
+      };
+    }
+```
+
+Similarly, they generate code for variable definition first, function definition next and then all other statements.
+
+```javascript
+function codeGenProgram(p: Program): Array<Array<string>> {
+  
+  let varWASM = codeGenVarDef(p.defs.varDefs);
+  let funcWASM = codeGenFuncDef(p.defs.funcDefs);
+  let stmtsWASM: Array<string> = new Array();
+  
+  p.stmts.forEach(stmt => {
+    stmtsWASM = stmtsWASM.concat(
+      codeGenStmt(stmt)
+    )
+  })
+
+  return [varWASM, funcWASM, stmtsWASM];
+}
+```
+
+They recursively generate code for function definition by generating for the function variable declarations first and body next and then recursively for the functions inside body.
+
+```javascript
+function codeGenFuncDef(fds: FuncDef[]): Array<string> {
+  let wasms: Array<string> = new Array();
+  fds.forEach(fd => {
+    let funcName = curEnv.name + "." + fd.name;
+    curEnv = envMap.get(funcName);
+    wasms = wasms.concat(
+      [`(func $${funcName} (result i32)`],
+      codeGenVarDef(fd.body.defs.varDefs),
+    )
+    fd.body.stmts.forEach(stmt => {
+      wasms = wasms.concat(codeGenStmt(stmt));
+    })
+    wasms = wasms.concat(
+      [`)`]
+    );
+
+    wasms = wasms.concat(codeGenFuncDef(fd.body.defs.funcDefs));
+    curEnv = curEnv.parent;
+  })
+
+  return wasms;
+}
+```
+From the above recursive code, we can observe that they support nested functions.
+
+They save all the variables in heap. And retrieve memory locations of variables from heap.
+
+
+**Bugs, Missing Features, and Design Decisions**
+
+A bug in this submission is it doesn't use parameters at all i.e. any function that takes parameters and use them wouldn't work fine.
+
+I will diagnose this in-detail and suggest the places where the code need to be updated to handle it.
+
+A sample program that doesn't work:
+
+```python
+def foo(a:int) -> int:
+  return a
+
+foo(9)
+```
+The above program returns 0.
+
+To handle this, I would add a `functionParams` list/set inside the environment to identify function parameters and would update it before generating code for a function. So, my updated environment would look like following:
+```javascript
+export type GlobalEnv = {
+  name: "",
+  parent: null,
+  nameToVar: new Map(),
+  paramsName: new Array(),
+  functionVars: Set<any>;
+}
+```
+Before I generate code for any function, I would update environment and after I generate code for environment, I would empty `functionVars`. Therefore, my codeGenFunc would be modified to:
+
+```javascript
+function codeGenFuncDef(fds: FuncDef[]): Array<string> {
+  let wasms: Array<string> = new Array();
+  fds.forEach(fd => {
+    let funcName = curEnv.name + "." + fd.name;
+    curEnv = envMap.get(funcName);
+    // Add parameters to curEnv
+    wasms = wasms.concat(
+      [`(func $${funcName} (result i32)`],
+      codeGenVarDef(fd.body.defs.varDefs),
+    )
+    fd.body.stmts.forEach(stmt => {
+      wasms = wasms.concat(codeGenStmt(stmt));
+    })
+    wasms = wasms.concat(
+      [`)`]
+    );
+
+    wasms = wasms.concat(codeGenFuncDef(fd.body.defs.funcDefs));
+    curEnv = curEnv.parent;
+  })
+
+  return wasms;
+}
+```
+
+And, while generating code for `id`, I would check whether it's a function parameter and if it is, I will use local.get otherwise get from heap.
+
+```javascript
+case "id": {
+      wasms = wasms.concat(getPointerWithOffset(generalPointer.get("DL"), -1));  // pointer to current SL 
+      let iterEnv = curEnv;
+      if (isFunc && curEnv.functionParams.has(varName)) {
+        // Get variable using local.get
+        wasms = wasms.concat([local.get ${variableName}])
+      }
+      else {
+        let counter = 0;
+        while (!iterEnv.nameToVar.has(expr.name)) {
+          counter += 1;
+          iterEnv = iterEnv.parent;
+          wasms = wasms.concat([`(i32.load)`])
+        }
+        // at SL now
+        let idInfo = iterEnv.nameToVar.get(expr.name);
+        wasms = wasms.concat([
+          `(i32.const ${- (idInfo.offset - 1) * 4})`,
+          `(i32.add)`,
+          `(i32.load)`,
+        ])
+      }
+      break;
+    }
+```
+
+
+**Adding New Features**
+
+I will describe how to add `and/or` for this submission.
+
+I will add `and` and `or` operator along with their `i32.and` and `i32.or`. Since `True` is 1 and `False` is 0, I can use i32.and/or operations for boolean `and/or`. The `binaryOpToWasm` which maintains a mapping between binary operation and its wasm code, should be modified to:
+
+```javascript
+export const binaryOpToWASM: Map<string,Array<string>> = new Map([
+  ["+", ["(i32.add)"]],
+  ["-", ["(i32.sub)"]],
+  ["*", ["(i32.mul)"]],
+  ["//", ["(i32.div_s)"]],
+  ["%", ["(i32.rem_s)"]],
+  ["==", ["(i32.eq)"]],
+  ["!=", ["(i32.ne)"]],
+  ["<=", ["(i32.le_s)"]],
+  [">=", ["(i32.ge_s)"]],
+  ["<", ["(i32.lt_s)"]],
+  [">", ["(i32.gt_s)"]],
+  ["is", ["(i32.eq)"]],
+  ["and", ["(i32.and)"]],
+  ["or", ["(i32.or)"]],
+])
+```
+
+We need to add handling for `and/or` in the typechecker verifying whether the operands are booleans. So, we have to add `and/or` to `boolOp`, a variable that keeps track of operations that takes booleans as operands. 
+
+```javascript
+const boolOp: Array<FuncType> = [
+    { name: "__eq__", paramsType: [boolType], returnType: boolType },
+    { name: "__neq__", paramsType: [boolType], returnType: boolType },
+    { name: "__and__", paramsType: [boolType], returnType: boolType },
+    { name: "__or__", paramsType: [boolType], returnType: boolType },
+    { name: "__not__", paramsType: [], returnType: boolType },
+  ]
+```
+
+These changes are sufficient to typecheck it and generate code for them.
+
+This is the sample wat code that is generated for an `or` operation:
+
+```python
+True or False
+```
+
+```javascript
+(module
+    (import "js" "mem" (memory 10))  ;; memory with one page(64KB)
+    (func $builtin_print (import "imports" "print") (param i32)(param i32) (result i32))
+    
+    (func (export "exported_func") (result i32)
+      (local $$last i32)
+      (i32.const 4)
+      (i32.const 4)
+      (i32.load)
+      (i32.const 655352)
+      (i32.add)
+      (i32.store)
+      (i32.const 8)
+      (i32.const 8)
+      (i32.load)
+      (i32.const 655356)
+      (i32.add)
+      (i32.store)
+      (i32.const 1)
+      (i32.const 0)
+      (i32.or)
+      (local.set $$last)
+      (local.get $$last)
+    )
+  )
+```
+
+
+**Lessons and Advice**
+
+1. **Better design decision than mine**
+
+I liked the way they kept track of caller/callee and its hierarchical structure which helped them with nested functions easily.
+
+2. **Worse design decision than mine**
+
+I found their memory handling really difficult to understand and hard to keep track of. This is just my personal opinion. For example, a 1-line python code generates such long wasm code with lots of unnecessary loads and stores:
+
+```python
+i:int = 9
+```
+
+```javascript
+(module
+    (import "js" "mem" (memory 10))  ;; memory with one page(64KB)
+    (func $builtin_print (import "imports" "print") (param i32)(param i32) (result i32))
+    (func (export "exported_func")
+        (local $$last i32)
+        (i32.const 4)
+        (i32.const 4)
+        (i32.load)
+        (i32.const 655352)
+        (i32.add)
+        (i32.store)
+        (i32.const 8)
+        (i32.const 8)
+        (i32.load)
+        (i32.const 655356)
+        (i32.add)
+        (i32.store)
+          (i32.const 4)
+        (i32.const 4)
+        (i32.load)
+        (i32.const -8)
+        (i32.add)
+        (i32.store)
+        (i32.const 4)
+        (i32.load)
+        (i32.const 0)
+        (i32.add)
+        (i32.const 2)
+        (i32.store)
+        (i32.const 4)
+        (i32.load)
+        (i32.const 4)
+        (i32.add)
+        (i32.const 9)
+        (i32.store)  
+    )
+  )
+```
+
+3. **What’s one improvement you’ll make to your compiler based on seeing this one?**
+
+I will try to keep track of caller/callee and BinaryOpToWasm so that by just changing 2 lines, I am able to handle another boolean expression the way they did.
+
+4. **What’s one improvement you recommend this author makes to their compiler based on reviewing it?**
+
+I think they're using lot of memory by unnecessary loads/stores. Please keep track of it.
