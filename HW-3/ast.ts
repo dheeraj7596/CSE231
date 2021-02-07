@@ -1,4 +1,18 @@
-export type Type = "bool" | "int" | "none"
+// export type Type = "bool" | "int" | "none"
+
+export type Type =
+  | {tag: "number"}
+  | {tag: "bool"}
+  | {tag: "none"}
+  | {tag: "class", name: string}
+
+  
+export type Value =
+    { tag: "none" }
+  | { tag: "bool", value: boolean }
+  | { tag: "num", value: number }
+  | { tag: "object", name: string, address: number}
+
 
 export type Parameter =
     { name: string, type: Type }

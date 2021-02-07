@@ -28,7 +28,7 @@ function isVoidCallLast(stmt: Stmt, env: compiler.GlobalEnv) : boolean {
     if (dummy.tag != "funcdef") { // Always condition true
       throw Error("Function is not inside call method.");
     }  
-    if (dummy.return == "none") {
+    if (dummy.return.tag == "none") {
       return true;
     } 
     else {

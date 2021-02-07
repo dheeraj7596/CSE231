@@ -193,5 +193,71 @@ describe('run(source, config) function', () => {
     expect(result).to.equal(BigInt(10));
   });
 
+  it('function-global', async() => {
+    const [result, env] = await run(`
+    def func(y:int) -> int:
+        i:int = 1
+        i = i + a
+        return i
+
+    a:int = 9
+    y:int = 0
+    func(y)
+    `, config);
+    expect(result).to.equal(BigInt(10));
+  });
+
+  it('function-function', async() => {
+    const [result, env] = await run(`
+    def isEven(n:int) -> bool:
+      if n %2 == 0:
+          return True
+      else:
+          return False
+        
+    def isOdd(n:int) -> bool:
+      if isEven(n):
+          return False
+      else:
+          return True
+
+    isOdd(4)
+    `, config);
+    expect(result).to.equal(BigInt(4294967296));
+  });
+
+  it('recursive-function', async() => {
+    const [result, env] = await run(`
+    def Fibonacci(n:int) -> int: 
+      if n==0: 
+          return 0
+      elif n==1: 
+          return 1
+      else: 
+          return Fibonacci(n-1)+Fibonacci(n-2)
+    Fibonacci(9)
+    `, config);
+    expect(result).to.equal(BigInt(34));
+  });
+
+  it('mutually-recursive-function', async() => {
+    const [result, env] = await run(`
+    def isEven(n:int) -> bool:
+      if n %2 == 0:
+          return True
+      else:
+          return isOdd(n-1)
+
+
+    def isOdd(n:int) -> bool:
+      if n%2 == 0:
+          return False
+      else:
+          return isEven(n-1)
+    
+    isOdd(4)        
+    `, config);
+    expect(result).to.equal(BigInt(4294967296));
+  });
   // TODO: add additional tests here to ensure the compiler runs as expected
 });

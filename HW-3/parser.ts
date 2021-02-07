@@ -8,7 +8,7 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr {
       return {
         tag: "literal",
         value: Number(s.substring(c.from, c.to)),
-        type: "int"
+        type: {tag: "number"}
       }
     case "Boolean":
       const boolVal = s.substring(c.from, c.to);
@@ -16,13 +16,13 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr {
         return{
           tag: "literal",
           value: Number(1) + 2**32, // Making the 33rd bit 1 for bool.
-          type: "bool"
+          type: {tag: "bool"}
         }
       } else if (boolVal == "False") {
         return{
           tag: "literal",
           value: Number(0) + 2**32, // Making the 33rd bit 1 for bool.
-          type: "bool"
+          type: {tag: "bool"}
         }
       } else {
         throw new Error('Boolean value which is not True/False observed.');
@@ -145,14 +145,22 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt {
         c.nextSibling()
         const value = traverseExpr(c, s);
         c.parent();
-        if (type == "bool" || type == "int") {
+        if (type == "bool") {
           return {
             tag: "init",
             name: name,
-            type: type,
+            type: {tag: "bool"},
             value: value
           }
         }  
+        else if (type == "int") {
+          return {
+            tag: "init",
+            name: name,
+            type: {tag: "number"},
+            value: value
+          }
+        }
         else {
           throw Error("Type other than bool and int appeared.")
         }
@@ -317,14 +325,35 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt {
 
       c.parent();      // Pop to Body
       c.parent();      // Pop to FunctionDefinition
-      return {
-        tag: "funcdef",
-        name: funcName,
-        decls: decls,
-        parameters: parameters,
-        body: funcBodyStmts,
-        return: returntype
+      if (returntype == "none") {
+        return {
+          tag: "funcdef",
+          name: funcName,
+          decls: decls,
+          parameters: parameters,
+          body: funcBodyStmts,
+          return: {tag: "none"}
+        }
+      } else if (returntype == "int") {
+        return {
+          tag: "funcdef",
+          name: funcName,
+          decls: decls,
+          parameters: parameters,
+          body: funcBodyStmts,
+          return: {tag: "number"}
+        }
+      } else if (returntype == "bool") {
+        return {
+          tag: "funcdef",
+          name: funcName,
+          decls: decls,
+          parameters: parameters,
+          body: funcBodyStmts,
+          return: {tag: "bool"}
+        }
       }
+      throw Error("Reached a place that shouldn't actually reach in Parser for FunctionDef");
     case "ReturnStatement":
       c.firstChild();  // Focus return keyword
       c.nextSibling(); // Focus expression
@@ -354,10 +383,18 @@ export function traverseParameters(c : TreeCursor, s : string) : Array<Parameter
       name: name,
       type: type
     })
-    params.push({
-      name: name,
-      type: type
-    })
+    if (type == "int") {
+      params.push({
+        name: name,
+        type: {tag: "number"}
+      })  
+    }
+    else if (type == "bool") {
+      params.push({
+        name: name,
+        type: {tag: "bool"}
+      })
+    }
     c.parent();
     c.nextSibling();
     if (c.type.name == ",") {

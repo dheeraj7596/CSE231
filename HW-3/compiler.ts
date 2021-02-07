@@ -25,7 +25,7 @@ export function augmentEnv(env: GlobalEnv, stmts: Array<Stmt>) : GlobalEnv {
   const newfuncDef = new Map(env.funcDef);
   const newfuncStr = env.funcStr;
   newEnv.set("scratchVar", newOffset);
-  newTypes.set("scratchVar", "int");
+  newTypes.set("scratchVar", {tag: "number"});
   newOffset += 1
   stmts.forEach((s) => {
     switch(s.tag) {
@@ -123,7 +123,7 @@ function codeGenFunc(stmt: Stmt, env: GlobalEnv) : Array<string> {
   }
    
   var returnStmt = "";
-  if (stmt.return != "none") {
+  if (stmt.return.tag != "none") {
     returnStmt = "(result i64)";
   }
 
@@ -154,7 +154,7 @@ function codeGenFunc(stmt: Stmt, env: GlobalEnv) : Array<string> {
   const declCommandGroups = stmt.decls.map((temp) => codeGen(temp, env, true));
   const commandGroups = declCommandGroups.concat(stmt.body.map((temp) => codeGen(temp, env, true)));
   const commands = localDefines.concat([].concat.apply([], commandGroups));
-  if (stmt.return != "none" && stmt.body[stmt.body.length - 1].tag == "if") {
+  if (stmt.return.tag != "none" && stmt.body[stmt.body.length - 1].tag == "if") {
     commands.push(`(unreachable)`);
   }
   var stmtsBody = commands.join("\n");
@@ -185,7 +185,7 @@ function codeGen(stmt: Stmt, env: GlobalEnv, isFunc: boolean = false) : Array<st
           if (dummy.tag != "funcdef") { // Always condition true
             throw Error("Function is not inside call method.");
           }  
-          if (dummy.return == "none") {
+          if (dummy.return.tag == "none") {
             return exprStmts;
           }
         }
@@ -198,7 +198,7 @@ function codeGen(stmt: Stmt, env: GlobalEnv, isFunc: boolean = false) : Array<st
           if (dummy.tag != "funcdef") { // Always condition true
             throw Error();
           }  
-          if (dummy.return == "none") {
+          if (dummy.return.tag == "none") {
             return exprStmts;
           }
         }

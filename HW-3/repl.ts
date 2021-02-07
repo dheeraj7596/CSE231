@@ -1,5 +1,6 @@
 import {run} from "./runner";
 import {emptyEnv, GlobalEnv} from "./compiler";
+import { Value } from "./ast";
 
 interface REPL {
   run(source : string) : Promise<any>;
@@ -26,6 +27,7 @@ export class BasicREPL {
     };
   }
   async run(source : string) : Promise<any> {
+    // To make it Promise<Value> we need to finish annotation first.
     this.importObject.updateNameMap(this.currentEnv); // is this the right place for updating the object's env?
     const [result, newEnv] = await run(source, {importObject: this.importObject, env: this.currentEnv});
     this.currentEnv = newEnv;
