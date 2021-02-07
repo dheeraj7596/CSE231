@@ -93,6 +93,85 @@ Generated Wasm code:
 In my implementation, I store all the global variables inside the memory and my function variables are stored on stack using `local.set`. Therefore, when the function is executed, all the function variables will also be deleted from the stack. In the above program, `a` is a global variable and is accessed inside the function `func`, `y` is a function parameter and `i` is a variable defined inside the function.
 We can observe from the first 3 lines in `exported_func` that `a` is stored in the memory and is loaded from memory in `$func` at line-6 in the function. The function parameter and variable declared inside the function are not needed once the function is executed. Therefore, I save them on function stack using `local.set`. On the second line of `$func` I declare the function variable `i` and I access the function parameter `y` at line 9 using `local.get`. 
 
+I briefly discuss my implementation here. 
+
+My ast is as follows:
+
+```javascript
+export type Type = "bool" | "int" | "none"
+
+export type Parameter =
+    { name: string, type: Type }
+
+
+export type Stmt =
+  | { tag: "define", name: string, value: Expr }
+  | { tag: "expr", expr: Expr }
+  | { tag: "globals" }
+  | {tag: "init", name: string, type: Type, value: Expr}
+  | {tag: "if", ifcond: Expr, ifthn: Array<Stmt>, elifcond: Expr, elifthn: Array<Stmt>, else: Array<Stmt>}
+  | {tag: "while", cond: Expr, body: Array<Stmt>}
+  | { tag: "funcdef", name: string, decls: Array<Stmt>, parameters: Array<Parameter>, body: Array<Stmt> , return: Type }
+  | { tag: "return", value: Expr }
+
+
+export type Expr =
+    { tag: "literal", value: number, type: Type }
+  | {tag: "uniop", value: Expr, name: string} 
+  | { tag: "id", name: string }
+  | { tag: "builtin1", name: string, arg: Expr }
+  | { tag: "binop", name: string, arg1: Expr, arg2: Expr}
+  | { tag: "builtin2", name: string, arg1: Expr, arg2: Expr}
+  | { tag: "call", name: string, arguments: Array<Expr> }
+  
+```
+
+The parsed function parameters are part of `Array<Parameter>` inside `funcDef` statement. Since I fill all the new function variables declared in `decls`, the parsed function variables can be found here. 
+
+My global environment variable `GlobalEnv` is as follows:
+
+```javascript
+export type GlobalEnv = {
+  globals: Map<string, number>;
+  offset: number;
+  types: Map<string, Type>;
+  functypes: Map<string, Map<string, Type>>;
+  funcDef: Map<string, Stmt>;
+  funcStr: string;
+  localVars: Set<any>;
+}
+```
+I explain each key inside `GlobalEnv` here. 
+
+- **globals**: The `globals` is a mapping from global variable name to the memory location in the memory.
+- **offset**: `offset` carries the information about the current offset in memory from which empty space starts. 
+- **types**: `types` is a mapping between variable name and its type. The `types` map is used during typechecking to retrieve the type of a variable. For example, `i = 5`, in this case, I need the type of `i` to check whether `=` is a valid operation. 
+- **functypes**: `functypes` is a mapping from function name to a types map that is specific to that function. I made this mapping to typecheck statements with function variables. However, I don't use it in my current implementation now because while typechecking a function and its statements, now I just make a copy of `types` in the GlobalEnv and populate it with function variables and its types and use the updated map for typechecking. I don't save it, thus the original `types` doesn't get corrupted and so does `GlobalEnv`. 
+- **funcDef**: `funcDef` is a map between function name and its ast. This information is used to check whether function returns anything and if it returns, it is used to get the return type of a function. This return type is a useful information while typechecking and code generating. Since a return statement could be anywhere i.e. inside an if-else statement or inside a while statement, saving an ast comes handy to query anything anytime. 
+- **funcStr**: `funcStr` is the wasm code generated for functions that is passed through multiple runs. This is useful in rendering the functions during REPL. 
+- **localVars**: `localVars` is a set of local variables in a function. Whenever I generate a code for a variable used in function, my implementation needs to know whether it's a function variable or global variable because function variables are available on stack and global variables are in memory. Therefore, I store this information and query while generating code for function.
+
+I follow the usual pipeline parse-typecheck-codeGen. Since the code for functions is appended at the top separately in wasm code, I separate code for functions first and then global next. So, the pipeline is parse-typecheck-codeGenFunc-codeGen. `codeGenFunc` in turn calls codeGen to generate code for function body. 
+
+The function header of `codeGen` and a sample `define` handling is as follows:
+```javascript
+function codeGen(stmt: Stmt, env: GlobalEnv, isFunc: boolean = false) : Array<string> {
+  switch(stmt.tag) {
+    case "define":
+      if (isFunc && isFunctionVar(stmt.name, env)) {
+        var valStmts = codeGenExpr(stmt.value, env, isFunc);
+        return valStmts.concat([`(local.set $${stmt.name})`]);
+      } 
+      else {
+        const locationToStore = [`(i32.const ${envLookup(env, stmt.name)}) ;; ${stmt.name}`];
+        var valStmts = codeGenExpr(stmt.value, env, isFunc);
+        return locationToStore.concat(valStmts).concat([`(i64.store)`]);
+      }
+  }
+}
+```
+
+As you can observe, I keep track of the call to `codeGen` whether it's called from a global code or a function code. This is needed because my function variables are on stack and if `codeGen` is called from a function, I look up the variable in `localVars` inside the environment to confirm whether it's a function variable. If I don't find it, then it's a global variable and I use `globals` to obtain the memory location and generate code accordingly. 
 
 
  ![Running screenshot of above program](figs/q2.png)

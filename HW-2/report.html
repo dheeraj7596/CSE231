@@ -1,0 +1,103 @@
+<h1>Programming Assignment-2</h1>
+<h2>1. Description of the representation of values (integers, booleans, and None)</h2>
+<p><strong>Integers</strong>:
+I represent integers and booleans as i64. I consider integers the way they are because they always can be represented by 32 bits.</p>
+<p><strong>Booleans</strong>:
+I represent booleans as i64 too. I need to distinguish between booleans and integers for typechecking and printing i.e. I have to print &quot;True&quot; for a bool True. I distinguish booleans from integers by making the 33rd bit from right as 1 for booleans. I represent True as 2^32 + 1 and False as 2^32. Therefore, during printing or any type checking I decide that it's a boolean based on its 33rd bit as mentioned below.</p>
+<pre><code>if (arg &lt; 2**32) { // This is a number    
+    elt.innerText = arg;
+    return BigInt(arg);
+}
+else if (BigInt(arg) &gt;= 2**32 &amp;&amp; BigInt(arg) &lt; 2**33) {
+    // Bools are added with 2^32.
+    arg = BigInt(arg) &amp; BigInt(1);
+    if (arg == 1) {
+        elt.innerText = &quot;True&quot;;
+    }
+    else if (arg == 0) {
+        elt.innerText = &quot;False&quot;;
+    }
+    else {
+        throw Error(&quot;Something other than True/False appeared.&quot;)
+    }
+    return arg;
+}
+</code></pre>
+<p><strong>None</strong>:
+My current implementation doesn't require a &quot;none&quot; literal. However, I have a separate type called &quot;none&quot; that is used as the return type by the functions that don't return anything. So, the possible types are {int, bool, none}.</p>
+<h2>2. Give an example of a program that uses At least one global variable, At least one function with a parameter, At least one variable defined inside a function.</h2>
+<p>Python code is:</p>
+<pre><code>def func(y:int) -&gt; int:
+    i:int = 1
+    i = i + a + y
+    return i
+
+a:int = 9
+y:int = 2
+</code></pre>
+<p>Generated Wasm code:</p>
+<pre><code>(module
+    (func $print (import &quot;imports&quot; &quot;print&quot;) (param i64) (result i64))
+    (import &quot;js&quot; &quot;memory&quot; (memory 1))
+    (func $abs (import &quot;imports&quot; &quot;abs&quot;) (param i64) (result i64))
+    (func $max (import &quot;imports&quot; &quot;max&quot;) (param i64) (param i64) (result i64))
+    (func $min (import &quot;imports&quot; &quot;min&quot;) (param i64) (param i64) (result i64))
+    (func $pow (import &quot;imports&quot; &quot;pow&quot;) (param i64) (param i64) (result i64))
+    
+    (func $func (param $y i64) (result i64) 
+        (local $localScratchVar i64)
+        (local $i i64)
+        (i64.const 1)
+        (local.set $i)
+        (local.get $i)
+        (i32.const 8)
+        (i64.load)
+        (i64.add)
+        (local.get $y)
+        (i64.add)
+        (local.set $i)
+        (local.get $i)
+        (return)
+    )
+    (func (export &quot;exported_func&quot;) (result i64)
+        (i32.const 8) ;; a
+        (i64.const 9)
+        (i64.store)
+        (i32.const 16) ;; y
+        (i64.const 2)
+        (i64.store)
+        (i32.const 0) ;; $scratchVar
+        (i32.const 16)
+        (i64.load)
+        (call $func)
+        (i64.store)
+        (i32.const 0)
+        (i64.load)
+    )
+)
+</code></pre>
+<p>In my implementation, I store all the global variables inside the memory and my function variables are stored on stack using <code>local.set</code>. Therefore, when the function is executed, all the function variables will also be deleted from the stack. In the above program, <code>a</code> is a global variable and is accessed inside the function <code>func</code>, <code>y</code> is a function parameter and <code>i</code> is a variable defined inside the function.
+We can observe from the first 3 lines in <code>exported_func</code> that <code>a</code> is stored in the memory and is loaded from memory in <code>$func</code> at line-6 in the function. The function parameter and variable declared inside the function are not needed once the function is executed. Therefore, I save them on function stack using <code>local.set</code>. On the second line of <code>$func</code> I declare the function variable <code>i</code> and I access the function parameter <code>y</code> at line 9 using <code>local.get</code>.</p>
+<p><img src="figs/q2.png" alt="Running screenshot of above program" width="800"></p>
+<h2>3. Write a Python program that goes into an infinite loop. What happens when you run it on the web page using your compiler?</h2>
+<p>My pc's fan starts running, the webpage hangs and my browser crashes after a while.</p>
+<p><img src="figs/q3.png" alt="Running screenshot of above program" width="800"></p>
+<h2>4. Scenarios</h2>
+<p><strong>A function defined in the main program and later called from the interactive prompt</strong></p>
+<p><img src="figs/q4_1.png" alt="Running screenshot of above program" width="800"></p>
+<p><strong>A function defined at the interactive prompt, whose body contains a call to a function from the main program, called at a later interactive prompt</strong>
+<img src="figs/q4_21.png" alt="Running screenshot of above program" width="800"></p>
+<p><img src="figs/q4_22.png" alt="Running screenshot of above program" width="800"></p>
+<p><strong>A program that has a type error because of a mismatch of booleans and integers on one of the arithmetic operations</strong>
+<img src="figs/q4_3.png" alt="Running screenshot of above program" width="800"></p>
+<p><strong>A program that has a type error in a conditional position</strong>
+<img src="figs/q4_4.png" alt="Running screenshot of above program" width="800"></p>
+<p><strong>A program that calls a function from within a loop</strong>
+<img src="figs/q4_5.png" alt="Running screenshot of above program" width="800"></p>
+<p><strong>Printing an integer and a boolean</strong>
+<img src="figs/q4_6.png" alt="Running screenshot of above program" width="800"></p>
+<p><strong>A recursive function.</strong>
+<img src="figs/q4_7.png" alt="Running screenshot of above program" width="800"></p>
+<p><strong>Two mutually-recursive functions.</strong></p>
+<p>Adapted from: http://www.idc-online.com/technical_references/pdfs/information_technology/Mutual_Recursion_in_Python.pdf
+<img src="figs/q4_8.png" alt="Running screenshot of above program" width="800"></p>

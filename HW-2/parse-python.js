@@ -3,13 +3,12 @@ const python = require('lezer-python');
 const input = 
 `
 def contains(y:int, x:int, z:int) -> bool:
+    global y
     i:int = 0
     j: int = 4
     return False
 
 y:int = 0
-x:int = 1
-z:int = 5
 contains(y, x, z)
     `;
 
