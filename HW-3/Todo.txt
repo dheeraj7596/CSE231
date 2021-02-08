@@ -6,3 +6,4 @@ redeclaring function throws error.
 Typechecking or compiling only when the function is called.
 Typechecking function body statements
 global variables shouldn't be saved.
+Check whether init statements are the first statements.

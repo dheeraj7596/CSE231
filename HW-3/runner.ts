@@ -22,7 +22,7 @@ if(typeof process !== "undefined") {
   };
 }
 
-function isVoidCallLast(stmt: Stmt, env: compiler.GlobalEnv) : boolean {
+function isVoidCallLast(stmt: Stmt<any>, env: compiler.GlobalEnv) : boolean {
   if (stmt.tag == "expr" && stmt.expr.tag == "call") {
     const dummy = env.funcDef.get(stmt.expr.name)
     if (dummy.tag != "funcdef") { // Always condition true

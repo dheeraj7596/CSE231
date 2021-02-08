@@ -14,91 +14,133 @@ function equalTypes(u : Type, t : Type) {
   else { return false; }
 }
 
-function tcExpr(expr : Expr, env : GlobalEnv) : Type {
+function equalLiteralInitTypes(u : Type, t : Type) {
+  if(u.tag === "number" && t.tag === "number") { return true; }
+  else if(u.tag === "bool" && t.tag === "bool") { return true; }
+  else if(u.tag === "class" && t.tag === "none") { return true; }
+  else { return false; }
+}
+
+function tcExpr(expr : Expr<any>, env : GlobalEnv) : Expr<Type> {
     switch(expr.tag) {
       case "literal":
-        return expr.type;
+        return { tag: "literal", value: expr.value, type: expr.type, a: expr.type };
       case "uniop":
         var argType = tcExpr(expr.value, env);
-        if (expr.name == "not" && argType.tag != "bool") {
-          throw("Cannot apply operator `not` on type `" + argType + "`");
+        if (expr.name == "not") {
+          if (argType.a.tag != "bool") {
+            throw("Cannot apply operator `not` on type `" + argType.a.tag + "`");
+          }
+          else {
+            var t : Type = {tag: "bool"};
+            return {tag: "uniop", value: expr.value, name: expr.name, a: t}
+          }
         }
-        else if (expr.name == "-" && argType.tag != "number") {
-          throw("Cannot apply operator `-` on type `" + argType + "`");
+        else if (expr.name == "-") {
+          if (argType.a.tag != "number") {
+            throw("Cannot apply operator `-` on type `" + argType.a.tag + "`");
+          }
+          else {
+            var t : Type = {tag: "number"};
+            return {tag: "uniop", value: expr.value, name: expr.name, a: t}
+          }
         }
-        return argType;
+        throw Error("Uniop other than not and - appeared");
       case "id":
-        return typeEnvLookup(env, expr.name);
+        var t : Type = typeEnvLookup(env, expr.name);
+        return { tag: "id", name: expr.name, a: t };
+      case "builtin1":
+        var t : Type = {tag: "number"};
+        return {tag: "builtin1", name: expr.name, arg: expr.arg, a: t};
       case "binop":
         var arg1Type = tcExpr(expr.arg1, env);
         var arg2Type = tcExpr(expr.arg2, env);
         if (expr.name == "+") {
-          if (arg1Type.tag != "number" || arg2Type.tag != "number"){
-            throw("Cannot apply operator `+` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          if (arg1Type.a.tag != "number" || arg2Type.a.tag != "number"){
+            throw("Cannot apply operator `+` on types `" + arg1Type.a.tag + "` and `" + arg2Type.a.tag + "`");
           }
-          return arg1Type;
+          return {tag: "binop", name: expr.name, arg1: expr.arg1, arg2: expr.arg2, a:arg1Type.a};
         }
         else if (expr.name == "-") {
-          if (arg1Type.tag != "number" || arg2Type.tag != "number"){
-            throw("Cannot apply operator `-` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          if (arg1Type.a.tag != "number" || arg2Type.a.tag != "number"){
+            throw("Cannot apply operator `-` on types `" + arg1Type.a.tag + "` and `" + arg2Type.a.tag + "`");
           }
-          return arg1Type;
+          return {tag: "binop", name: expr.name, arg1: expr.arg1, arg2: expr.arg2, a:arg1Type.a};
         }
         else if (expr.name == "*") {
-          if (arg1Type.tag != "number" || arg2Type.tag != "number"){
-            throw("Cannot apply operator `*` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          if (arg1Type.a.tag != "number" || arg2Type.a.tag != "number"){
+            throw("Cannot apply operator `*` on types `" + arg1Type.a.tag + "` and `" + arg2Type.a.tag + "`");
           }
-          return arg1Type;
+          return {tag: "binop", name: expr.name, arg1: expr.arg1, arg2: expr.arg2, a:arg1Type.a};
         }
         else if (expr.name == "//") {
-          if (arg1Type.tag != "number" || arg2Type.tag != "number"){
-            throw("Cannot apply operator `//` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          if (arg1Type.a.tag != "number" || arg2Type.a.tag != "number"){
+            throw("Cannot apply operator `//` on types `" + arg1Type.a.tag + "` and `" + arg2Type.a.tag + "`");
           }
-          return arg1Type;
+          return {tag: "binop", name: expr.name, arg1: expr.arg1, arg2: expr.arg2, a:arg1Type.a};
         }
         else if (expr.name == "%") {
-          if (arg1Type.tag != "number" || arg2Type.tag != "number"){
-            throw("Cannot apply operator `%` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          if (arg1Type.a.tag != "number" || arg2Type.a.tag != "number"){
+            throw("Cannot apply operator `%` on types `" + arg1Type.a.tag + "` and `" + arg2Type.a.tag + "`");
           }
-          return arg1Type;
+          return {tag: "binop", name: expr.name, arg1: expr.arg1, arg2: expr.arg2, a:arg1Type.a};
         }
         else if (expr.name == "<=") {
-          if (arg1Type.tag != "number" || arg2Type.tag != "number"){
-            throw("Cannot apply operator `<=` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          if (arg1Type.a.tag != "number" || arg2Type.a.tag != "number"){
+            throw("Cannot apply operator `<=` on types `" + arg1Type.a.tag + "` and `" + arg2Type.a.tag + "`");
           }
-          return {tag: "bool"};
+          var t : Type = {tag: "bool"};
+          return {tag: "binop", name: expr.name, arg1: expr.arg1, arg2: expr.arg2, a:t};
         }
         else if (expr.name == ">=") {
-          if (arg1Type.tag != "number" || arg2Type.tag != "number"){
-            throw("Cannot apply operator `>=` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          if (arg1Type.a.tag != "number" || arg2Type.a.tag != "number"){
+            throw("Cannot apply operator `>=` on types `" + arg1Type.a.tag + "` and `" + arg2Type.a.tag + "`");
           }
-          return {tag: "bool"};
+          var t : Type = {tag: "bool"};
+          return {tag: "binop", name: expr.name, arg1: expr.arg1, arg2: expr.arg2, a:t};
         }
         else if (expr.name == "<") {
-          if (arg1Type.tag != "number" || arg2Type.tag != "number"){
-            throw("Cannot apply operator `<` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          if (arg1Type.a.tag != "number" || arg2Type.a.tag != "number"){
+            throw("Cannot apply operator `<` on types `" + arg1Type.a.tag + "` and `" + arg2Type.a.tag + "`");
           }
-          return {tag: "bool"};
+          var t : Type = {tag: "bool"};
+          return {tag: "binop", name: expr.name, arg1: expr.arg1, arg2: expr.arg2, a:t};
         }
         else if (expr.name == ">") {
-          if (arg1Type.tag != "number" || arg2Type.tag != "number"){
-            throw("Cannot apply operator `>` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          if (arg1Type.a.tag != "number" || arg2Type.a.tag != "number"){
+            throw("Cannot apply operator `>` on types `" + arg1Type.a.tag + "` and `" + arg2Type.a.tag + "`");
           }
-          return {tag: "bool"};
+          var t : Type = {tag: "bool"};
+          return {tag: "binop", name: expr.name, arg1: expr.arg1, arg2: expr.arg2, a:t};
         }
         else if (expr.name == "==") {
-          if (!equalTypes(arg1Type, arg2Type)){
-            throw("Cannot apply operator `==` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          if ((arg1Type.a.tag == "number" || arg1Type.a.tag == "bool") && (arg2Type.a.tag == "number" || arg2Type.a.tag == "bool")) {
+            if (!equalTypes(arg1Type.a, arg2Type.a)){
+              throw("Cannot apply operator `==` on types `" + arg1Type.a.tag + "` and `" + arg2Type.a.tag + "`");
+            }
           }
-          return {tag: "bool"};
+          else {
+            throw("Cannot apply operator `==` on types `" + arg1Type.a.tag + "` and `" + arg2Type.a.tag + "`");
+          }
+          var t : Type = {tag: "bool"};
+          return {tag: "binop", name: expr.name, arg1: expr.arg1, arg2: expr.arg2, a:t};
         }
         else if (expr.name == "!=") {
-          if (!equalTypes(arg1Type, arg2Type)){
-            throw("Cannot apply operator `!=` on types `" + arg1Type + "` and `" + arg2Type + "`");
+          if ((arg1Type.a.tag == "number" || arg1Type.a.tag == "bool") && (arg2Type.a.tag == "number" || arg2Type.a.tag == "bool")) {
+            if (!equalTypes(arg1Type.a, arg2Type.a)){
+              throw("Cannot apply operator `!=` on types `" + arg1Type.a.tag + "` and `" + arg2Type.a.tag + "`");
+            }
           }
-          return {tag: "bool"};
+          else {
+            throw("Cannot apply operator `!=` on types `" + arg1Type.a.tag + "` and `" + arg2Type.a.tag + "`");
+          }
+          var t : Type = {tag: "bool"};
+          return {tag: "binop", name: expr.name, arg1: expr.arg1, arg2: expr.arg2, a:t};
         }
         break;
+      case "builtin2":
+        var t : Type = {tag: "number"};
+        return {tag: "builtin2", name: expr.name, arg1: expr.arg1, arg2: expr.arg2, a: t};
       case "call":
         const funcDefStmt = env.funcDef.get(expr.name)
         if (funcDefStmt.tag != "funcdef") {
@@ -112,45 +154,60 @@ function tcExpr(expr : Expr, env : GlobalEnv) : Type {
           const argExpr = expr.arguments[index];
           const argtype = tcExpr(argExpr, env);
           const expectedArgType = funcDefStmt.parameters[index].type;
-          if (!equalTypes(argtype, expectedArgType)) {
-            throw Error("Expected type `" + expectedArgType.tag + "`; got type `" + argtype.tag + "` in parameter " + index);
+          if (!equalTypes(argtype.a, expectedArgType)) {
+            throw Error("Expected type `" + expectedArgType.tag + "`; got type `" + argtype.a.tag + "` in parameter " + index);
           }
         }
-        return funcReturnType;
+        return {tag: "call", name: expr.name, arguments: expr.arguments, a:funcReturnType};
     }
   }
 
-function typeCheckStmt(stmt: Stmt, env: GlobalEnv) : void {
+function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
   switch(stmt.tag) {
     case "define":
       var exprType = tcExpr(stmt.value, env);
       var declType = typeEnvLookup(env, stmt.name);
-      if (!equalTypes(declType, exprType)) {
+      if (!equalTypes(declType, exprType.a)) {
         throw("Expected type `" + declType.tag + "`; got type `" + exprType.tag + "`");
       }
-      break
+      return {
+        tag: "define",
+        name: stmt.name,
+        value: exprType,
+        a: {tag: "none"}
+      };
     case "expr":
       var type = tcExpr(stmt.expr, env);
-      break
+      return {
+        tag: "expr",
+        expr: type,
+        a: type.a
+      }
     case "init":
       var exprType = tcExpr(stmt.value, env);
       var declType = stmt.type;
-      if (!equalTypes(declType, exprType)) {
+      if (!equalLiteralInitTypes(declType, exprType.a)) {
         throw("Expected type `" + declType.tag + "`; got type `" + exprType.tag + "`");
       }
-      break
+      return {
+        tag: "init",
+        name: stmt.name,
+        type: stmt.type,
+        value: exprType,
+        a: {tag: "none"},
+      }
     case "if":
       var ifexprType = tcExpr(stmt.ifcond, env);
-      if (ifexprType.tag != "bool") {
-        throw("Condition expression cannot be of type `" + ifexprType + "`");
+      if (ifexprType.a.tag != "bool") {
+        throw("Condition expression cannot be of type `" + ifexprType.a.tag + "`");
       }
       stmt.ifthn.forEach(element => {
         typeCheckStmt(element, env);
       });
       if (stmt.elifcond != null) {
         var elifexprType = tcExpr(stmt.elifcond, env);
-        if (elifexprType.tag != "bool") {
-          throw("Condition expression cannot be of type `" + elifexprType + "`");
+        if (elifexprType.a.tag != "bool") {
+          throw("Condition expression cannot be of type `" + elifexprType.a.tag + "`");
         }
         stmt.elifthn.forEach(element => {
           typeCheckStmt(element, env);
@@ -174,16 +231,29 @@ function typeCheckStmt(stmt: Stmt, env: GlobalEnv) : void {
         throw("If-Elif-Else body should return same types");
       }
       
-      break;
+      return {
+        tag: "if",
+        ifcond: stmt.ifcond, 
+        ifthn: stmt.ifthn, 
+        elifcond: stmt.elifcond, 
+        elifthn: stmt.elifthn, 
+        else: stmt.else,
+        a: {tag: "none"},
+      }
     case "while":
       var whileexprType = tcExpr(stmt.cond, env);
-      if (whileexprType.tag != "bool") {
-        throw("Condition expression cannot be of type `" + whileexprType + "`");
+      if (whileexprType.a.tag != "bool") {
+        throw("Condition expression cannot be of type `" + whileexprType.a.tag + "`");
       }
       stmt.body.forEach(element => {
         typeCheckStmt(element, env);
       });
-      break;
+      return {
+        tag: "while",
+        cond: stmt.cond, 
+        body: stmt.body,
+        a: {tag: "none"}
+      }
     case "funcdef":
       const returnType = stmt.return;
       const funcName = stmt.name;
@@ -225,12 +295,36 @@ function typeCheckStmt(stmt: Stmt, env: GlobalEnv) : void {
 
       // setting the type map into functypes
       env.functypes.set(funcName, localEnv);
-      break;
+      return { 
+        tag: "funcdef", 
+        name: stmt.name, 
+        decls: stmt.decls, 
+        parameters: stmt.parameters, 
+        body: stmt.body , 
+        return: stmt.return,
+        a: {tag: "none"}
+      }
   }
 }
 
-export function typeCheck(stmts: Array<Stmt>, env: GlobalEnv) : void {
+function isDecl(s : Stmt<any>) {
+  // Add class check here
+  return s.tag === "init";
+}
+
+export function typeCheck(stmts: Array<Stmt<any>>, env: GlobalEnv) : Array<Stmt<Type>> {
+  const newstmts : Array<Stmt<Type>> = [];
+  // let index = 0;
+
+  // while(isDecl(stmts[index])) {
+  //   let s = stmts[index];
+  //   if(s.tag === "init") {
+      
+  //   }
+  //   // Add class handling here
+  // }
   stmts.forEach(stmt => {
-    typeCheckStmt(stmt, env);
-  });  
+    newstmts.push(typeCheckStmt(stmt, env));
+  });
+  return newstmts;
 }

@@ -10,14 +10,14 @@ export type GlobalEnv = {
   offset: number;
   types: Map<string, Type>;
   functypes: Map<string, Map<string, Type>>;
-  funcDef: Map<string, Stmt>;
+  funcDef: Map<string, Stmt<Type>>;
   funcStr: string;
   localVars: Set<any>;
 }
 
 export const emptyEnv = { globals: new Map(), offset: 0, types: new Map(), functypes: new Map(), funcDef: new Map(), funcStr: "",  localVars: new Set()};
 
-export function augmentEnv(env: GlobalEnv, stmts: Array<Stmt>) : GlobalEnv {
+export function augmentEnv(env: GlobalEnv, stmts: Array<Stmt<any>>) : GlobalEnv {
   const newEnv = new Map(env.globals);
   const newTypes = new Map(env.types);
   var newOffset = env.offset;
@@ -116,7 +116,7 @@ export function envLookup(env : GlobalEnv, name : string) : number {
   return (env.globals.get(name) * 8); // 8-byte values
 }
 
-function codeGenFunc(stmt: Stmt, env: GlobalEnv) : Array<string> {
+function codeGenFunc(stmt: Stmt<Type>, env: GlobalEnv) : Array<string> {
   console.log("size of global map", env.globals.size);
   if (stmt.tag != "funcdef") {
     throw Error("Non-function in codeGenFunc " + stmt.tag);
@@ -165,7 +165,7 @@ function isFunctionVar(varName: string, env: GlobalEnv) : boolean {
   return env.localVars.has(varName);
 }
 
-function codeGen(stmt: Stmt, env: GlobalEnv, isFunc: boolean = false) : Array<string> {
+function codeGen(stmt: Stmt<Type>, env: GlobalEnv, isFunc: boolean = false) : Array<string> {
   switch(stmt.tag) {
     case "define":
       if (isFunc && isFunctionVar(stmt.name, env)) {
@@ -309,7 +309,7 @@ function codeGen(stmt: Stmt, env: GlobalEnv, isFunc: boolean = false) : Array<st
   }
 }
 
-function codeGenExpr(expr : Expr, env: GlobalEnv, isFunc: boolean = false) : Array<string> {
+function codeGenExpr(expr : Expr<Type>, env: GlobalEnv, isFunc: boolean = false) : Array<string> {
   switch(expr.tag) {
     case "builtin1":
       const argStmts = codeGenExpr(expr.arg, env, isFunc);

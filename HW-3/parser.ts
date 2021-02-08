@@ -2,7 +2,7 @@ import {parser} from "lezer-python";
 import {TreeCursor} from "lezer-tree";
 import {Expr, Stmt, Parameter} from "./ast";
 
-export function traverseExpr(c : TreeCursor, s : string) : Expr {
+export function traverseExpr(c : TreeCursor, s : string) : Expr<any> {
   switch(c.type.name) {
     case "Number":
       return {
@@ -70,7 +70,7 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr {
         c.nextSibling(); // go to arglist
         c.firstChild(); // go into arglist, handling (
         c.nextSibling(); // find first argument in arglist
-        const args: Expr[] = [];
+        const args: Expr<any>[] = [];
         while (c.node.name != ")") {
           const arg = traverseExpr(c, s);
           c.nextSibling(); // comma or )
@@ -119,7 +119,7 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr {
   }
 }
 
-export function traverseStmt(c : TreeCursor, s : string) : Stmt {
+export function traverseStmt(c : TreeCursor, s : string) : Stmt<any> {
   switch(c.node.type.name) {
     case "AssignStatement":
       c.firstChild(); // go to name
@@ -302,8 +302,8 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt {
       c.firstChild();  // Focus on :
       c.nextSibling(); // starting statement
       
-      const decls: Stmt[] = []
-      const funcBodyStmts: Stmt[] = []
+      const decls: Stmt<any>[] = []
+      const funcBodyStmts: Stmt<any>[] = []
       const allBodyStmts = []
       do {
         console.log("Traversing statement " + s.substring(c.from, c.to));
@@ -366,10 +366,10 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt {
 }
 
 
-export function traverseParameters(c : TreeCursor, s : string) : Array<Parameter> {
+export function traverseParameters(c : TreeCursor, s : string) : Array<Parameter<any>> {
   c.firstChild();  // Focuses on open paren
   c.nextSibling(); // Focuses on a VariableName
-  const params: Parameter[] = [];
+  const params: Parameter<any>[] = [];
   while (c.type.name != ")") {
     let name = s.substring(c.from, c.to);
     c.nextSibling(); // Focus on TypeDef
@@ -406,7 +406,7 @@ export function traverseParameters(c : TreeCursor, s : string) : Array<Parameter
 }
 
 
-export function traverse(c : TreeCursor, s : string) : Array<Stmt> {
+export function traverse(c : TreeCursor, s : string) : Array<Stmt<any>> {
   switch(c.node.type.name) {
     case "Script":
       const stmts = [];
@@ -420,7 +420,7 @@ export function traverse(c : TreeCursor, s : string) : Array<Stmt> {
       throw new Error("Could not parse program at " + c.node.from + " " + c.node.to);
   }
 }
-export function parse(source : string) : Array<Stmt> {
+export function parse(source : string) : Array<Stmt<any>> {
   const t = parser.parse(source);
   return traverse(t.cursor(), source);
 }
