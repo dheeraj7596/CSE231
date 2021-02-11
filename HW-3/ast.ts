@@ -19,6 +19,7 @@ export type Parameter<A> =
 
 
 export type Stmt<A> =
+  | { a?: A, tag: "class", name: string, decls: Array<Stmt<A>>, funcdefs: Array<Stmt<A>> }
   | { a?: A, tag: "define", name: string, value: Expr<A> }
   | { a?: A, tag: "expr", expr: Expr<A> }
   | { a?: A, tag: "globals" }
@@ -36,5 +37,7 @@ export type Expr<A> =
   | { a?: A, tag: "builtin1", name: string, arg: Expr<A> }
   | { a?: A, tag: "binop", name: string, arg1: Expr<A>, arg2: Expr<A>}
   | { a?: A, tag: "builtin2", name: string, arg1: Expr<A>, arg2: Expr<A>}
-  | { a?: A, tag: "call", name: string, arguments: Array<Expr<A>> }
+  | { a?: A, tag: "call", obj: Expr<A>, name: string, arguments: Array<Expr<A>> }
+  | { a?: A, tag: "construct", name: string }
+  | { a?: A, tag: "lookup", obj: Expr<A>, name: string }
   

@@ -13,9 +13,26 @@ export type GlobalEnv = {
   funcDef: Map<string, Stmt<Type>>;
   funcStr: string;
   localVars: Set<any>;
+  classVarNameTypes: Map<string, Map<string, Type>>; // Mapping between class name and a mapping from variable name to its type
+  classVarNameIndex: Map<string, Map<string, number>>; // Mapping between class name and a mapping from variable name to its index
+  classIndexVarName: Map<string, Map<number, string>>; // Mapping between class name and a mapping from an index to its variable name
+  classFuncDefs: Map<string, Map<string, Stmt<Type>>>; // Mapping between class name and a map that is between function names to function ast
+  classDef: Map<string, Stmt<Type>>; // Mapping between class name and its ast.
 }
 
-export const emptyEnv = { globals: new Map(), offset: 0, types: new Map(), functypes: new Map(), funcDef: new Map(), funcStr: "",  localVars: new Set()};
+export const emptyEnv = { 
+  globals: new Map(), 
+  offset: 0, 
+  types: new Map(), 
+  functypes: new Map(), 
+  funcDef: new Map(), 
+  funcStr: "",  
+  localVars: new Set(),
+  classVarNameTypes: new Map(),
+  classVarNameIndex: new Map(),
+  classFuncDefs: new Map(),
+  classDef: new Map()
+};
 
 export function augmentEnv(env: GlobalEnv, stmts: Array<Stmt<any>>) : GlobalEnv {
   const newEnv = new Map(env.globals);
@@ -23,6 +40,11 @@ export function augmentEnv(env: GlobalEnv, stmts: Array<Stmt<any>>) : GlobalEnv 
   var newOffset = env.offset;
   const newfuncTypes = new Map(env.functypes);
   const newfuncDef = new Map(env.funcDef);
+  const newclassVarNameTypes = new Map(env.classVarNameTypes);
+  const newclassVarNameIndex = new Map(env.classVarNameIndex);
+  const newclassIndexVarName = new Map(env.classIndexVarName);
+  const newclassFuncDefs = new Map(env.classFuncDefs);
+  const newclassDef = new Map(env.classDef);
   const newfuncStr = env.funcStr;
   newEnv.set("scratchVar", newOffset);
   newTypes.set("scratchVar", {tag: "number"});
@@ -42,6 +64,34 @@ export function augmentEnv(env: GlobalEnv, stmts: Array<Stmt<any>>) : GlobalEnv 
         break;
       case "funcdef":
         newfuncDef.set(s.name, s);
+        break;
+      case "class":
+        newclassDef.set(s.name, s);
+        const varNameIndex = new Map<string, number>();
+        const indexVarName = new Map<number, string>();
+        const varNameType = new Map<string, Type>();
+        for (let index = 0; index < s.decls.length; index++) {
+          const element = s.decls[index];
+          if (element.tag != "init") {
+            throw Error("Non-init statement inside class decls");
+          }
+          varNameIndex.set(element.name, index);
+          indexVarName.set(index, element.name);
+          varNameType.set(element.name, element.type);
+        }
+        newclassVarNameIndex.set(s.name, varNameIndex);
+        newclassIndexVarName.set(s.name, indexVarName);
+        newclassVarNameTypes.set(s.name, varNameType);
+        
+        const funcDefs = new Map<string, Stmt<Type>>();
+        s.funcdefs.forEach(element => {
+          if (element.tag != "funcdef") {
+            throw Error("Non-function statement inside class funcdefs");
+          }
+          funcDefs.set(element.name, element);
+        });
+        newclassFuncDefs.set(s.name, funcDefs);
+        break;
     }
   })
   return {
@@ -51,7 +101,12 @@ export function augmentEnv(env: GlobalEnv, stmts: Array<Stmt<any>>) : GlobalEnv 
     functypes: newfuncTypes,
     funcDef: newfuncDef,
     funcStr: newfuncStr,
-    localVars: new Set()
+    localVars: new Set(),
+    classVarNameTypes: newclassVarNameTypes,
+    classVarNameIndex: newclassVarNameIndex,
+    classIndexVarName: newclassIndexVarName,
+    classFuncDefs: newclassFuncDefs,
+    classDef: newclassDef
   }
 }
 
@@ -62,20 +117,68 @@ type CompileResult = {
   newEnv: GlobalEnv
 };
 
+function updateEnvWithTypedAst(env: GlobalEnv, stmts: Array<Stmt<any>>) : GlobalEnv {
+  const newEnv = new Map(env.globals);
+  const newTypes = new Map(env.types);
+  var newOffset = env.offset;
+  const newfuncTypes = new Map(env.functypes);
+  const newfuncDef = new Map(env.funcDef);
+  const newclassVarNameTypes = new Map(env.classVarNameTypes);
+  const newclassVarNameIndex = new Map(env.classVarNameIndex);
+  const newclassIndexVarName = new Map(env.classIndexVarName);
+  const newclassFuncDefs = new Map(env.classFuncDefs);
+  const newclassDef = new Map(env.classDef);
+  const newfuncStr = env.funcStr;
+
+  stmts.forEach(s => {
+    switch(s.tag) {
+      case "funcdef":
+        newfuncDef.set(s.name, s);
+        break;
+      case "class":
+        newclassDef.set(s.name, s);
+        const funcDefs = new Map<string, Stmt<Type>>();
+        s.funcdefs.forEach(element => {
+          if (element.tag != "funcdef") {
+            throw Error("Non-function statement inside class funcdefs");
+          }
+          funcDefs.set(element.name, element);
+        });
+        newclassFuncDefs.set(s.name, funcDefs);
+        break;
+    }
+  });
+  return {
+    globals: newEnv,
+    offset: newOffset,
+    types: newTypes,
+    functypes: newfuncTypes,
+    funcDef: newfuncDef,
+    funcStr: newfuncStr,
+    localVars: new Set(),
+    classVarNameTypes: newclassVarNameTypes,
+    classVarNameIndex: newclassVarNameIndex,
+    classIndexVarName: newclassIndexVarName,
+    classFuncDefs: newclassFuncDefs,
+    classDef: newclassDef
+  }
+}
+
 
 export function compile(source: string, env: GlobalEnv) : CompileResult {
   const ast = parse(source);
-  const withDefines = augmentEnv(env, ast);
+  var withDefines = augmentEnv(env, ast);
   withDefines.globals.forEach((value: number, key: string) => {
     console.log("withDefines globals ", key, value);
   });
-  typeCheck(ast, withDefines);
+  const typedAst = typeCheck(ast, withDefines);
+  withDefines = updateEnvWithTypedAst(withDefines, typedAst);
   withDefines.globals.forEach((value: number, key: string) => {
     console.log("withDefines globals after typecheck ", key, value);
   });
 
   const funs : Array<string> = [];
-  ast.forEach((stmt) => {
+  typedAst.forEach((stmt) => {
     if(stmt.tag === "funcdef") { funs.push(codeGenFunc(stmt, withDefines).join("\n")); }
   });
   
@@ -84,7 +187,7 @@ export function compile(source: string, env: GlobalEnv) : CompileResult {
 
   const commandGroups: Array<Array<string>> = []
 
-  ast.forEach(stmt => {
+  typedAst.forEach(stmt => {
     if (stmt.tag != "funcdef") {
       commandGroups.push(codeGen(stmt, withDefines, false));
     }
@@ -167,6 +270,8 @@ function isFunctionVar(varName: string, env: GlobalEnv) : boolean {
 
 function codeGen(stmt: Stmt<Type>, env: GlobalEnv, isFunc: boolean = false) : Array<string> {
   switch(stmt.tag) {
+    case "class":
+      return [`;; ${stmt.name}`];
     case "define":
       if (isFunc && isFunctionVar(stmt.name, env)) {
         var valStmts = codeGenExpr(stmt.value, env, isFunc);
@@ -328,6 +433,63 @@ function codeGenExpr(expr : Expr<Type>, env: GlobalEnv, isFunc: boolean = false)
         console.log("I am here for ", expr.name, env)
         return [`(i32.const ${envLookup(env, expr.name)})`, `(i64.load)`];
       }
+    case "lookup":
+      console.log("Looking up ", expr, env);
+      let objstmts = codeGenExpr(expr.obj, env, isFunc);
+      let objtype = expr.obj.a;
+      if(objtype.tag !== "class") { // I don't think this error can happen
+        throw new Error("Report this as a bug to the compiler developer, this shouldn't happen " + objtype.tag);
+      }
+      let className = objtype.name;
+      let offset = env.classVarNameIndex.get(className).get(expr.name);
+      return [
+        ...objstmts,
+        `(i64.add (i64.const ${offset * 8}))`,
+        `(i32.wrap_i64)`,
+        `(i64.load)`
+      ];
+    case "construct":
+      var classNameForConstructor = expr.name;
+      var typedAstForClass = env.classDef.get(classNameForConstructor);
+      if (typedAstForClass.tag != "class") {
+        throw Error("Tag for an ast for a class inside classDef is not class and is " + typedAstForClass.tag);
+      }
+
+      var stmts : Array<string> = []
+      var numDecls = typedAstForClass.decls.length;
+      for (let index = 0; index < numDecls; index++) {
+        if (index == 0) {
+          stmts = stmts.concat([`(i64.load (i32.const 0))`]);  // Load the dynamic heap head offset
+          stmts = stmts.concat([`(i32.wrap_i64)`]);  // Since store address is i32, converting i64 to i32.
+        }
+        var declStmt = typedAstForClass.decls[index];
+        if (declStmt.tag != "init") {
+          throw Error("Tag for a decl statement is not init");
+        }  
+
+        if (declStmt.name != env.classIndexVarName.get(classNameForConstructor).get(index)) {
+          throw Error("The order in declstatements array in classdef is not same as the order we inserted");
+        }
+        var valStmts = codeGenExpr(declStmt.value, env, isFunc);
+        stmts = stmts.concat(valStmts);  // The value of declared field
+        stmts = stmts.concat([`(i64.store)`]);  // Put the field value on the heap
+
+        if (index != (numDecls - 1)) {
+          stmts = stmts.concat([`(i64.load (i32.const 0))`]); // Load the dynamic heap head offset
+          stmts = stmts.concat([`(i64.add (i64.const 8))`]); // Refer to the next word
+          stmts = stmts.concat([`(i32.wrap_i64)`]); // Since store address is i32, converting i64 to i32.
+        }
+      }
+
+      if (numDecls > 0) {
+        stmts = stmts.concat([`(i32.const 0)`]); // Address for our upcoming store instruction
+        stmts = stmts.concat([`(i64.load (i32.const 0))`]); // Load the dynamic heap head offset
+        stmts = stmts.concat([`(i64.add (i64.const ${numDecls * 8}))`]); // Move heap head beyond the two words we just created for fields
+        stmts = stmts.concat([`(i64.store)`]); // Save the new heap offset
+        stmts = stmts.concat([`(i64.load (i32.const 0))`]); // Reload the heap head ptr
+        stmts = stmts.concat([`(i64.sub (i64.const ${numDecls * 8}))`]); // Subtract 8 to get address for the object
+      }
+      return stmts;
     case "binop":
       var binOpArgStmts = codeGenExpr(expr.arg1, env, isFunc);
       binOpArgStmts = binOpArgStmts.concat(codeGenExpr(expr.arg2, env, isFunc));

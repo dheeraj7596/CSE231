@@ -4,6 +4,12 @@ import {Expr, Stmt, Parameter} from "./ast";
 
 export function traverseExpr(c : TreeCursor, s : string) : Expr<any> {
   switch(c.type.name) {
+    case "None":
+      return {
+        tag: "literal",
+        value: Number(2) + 2**32, // Making the 33rd bit 1 and last to second bit 1.
+        type: {tag: "none"}
+      }
     case "Number":
       return {
         tag: "literal",
@@ -27,46 +33,25 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr<any> {
       } else {
         throw new Error('Boolean value which is not True/False observed.');
       }
-      
     case "VariableName":
+      return {
+        tag: "id",
+        name: s.substring(c.from, c.to)
+      }
+    case "self":
       return {
         tag: "id",
         name: s.substring(c.from, c.to)
       }
     case "CallExpression":
       c.firstChild();
-      const callName = s.substring(c.from, c.to);
-      if (callName == "abs" || callName == "print") {
-        c.nextSibling(); // go to arglist
-        c.firstChild(); // go into arglist
-        c.nextSibling(); // find single argument in arglist
-        const arg = traverseExpr(c, s);
-        c.parent(); // pop arglist
-        c.parent(); // pop CallExpression
-        return {
-          tag: "builtin1",
-          name: callName,
-          arg: arg
-        };
-      }
-      else if (callName == "max" || callName == "min" || callName == "pow"){
-        c.nextSibling(); // go to arglist
-        c.firstChild(); // go into arglist
-        c.nextSibling(); // find first argument in arglist
-        const arg1 = traverseExpr(c, s);
-        c.nextSibling();
-        c.nextSibling(); // find second argument in arglist
-        const arg2 = traverseExpr(c, s);
-        c.parent(); // pop arglist
-        c.parent(); // pop CallExpression
-        return {
-          tag: "builtin2",
-          name: callName,
-          arg1: arg1,
-          arg2: arg2
-        };
-      }
-      else {
+      var dummy = c.node.name;
+      if (dummy == "MemberExpression") { // calling function of a class
+        let obj = traverseExpr(c, s);
+        if (obj.tag != "lookup") {
+          throw Error("This should be a lookup tag. Error in callExpression.")
+        }
+        const methodName = obj.name;
         c.nextSibling(); // go to arglist
         c.firstChild(); // go into arglist, handling (
         c.nextSibling(); // find first argument in arglist
@@ -82,12 +67,93 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr<any> {
         }
         c.parent(); // pop arglist
         c.parent(); // pop CallExpression
-
         return {
-          tag: "call",
-          name: callName,
-          arguments: args,
-        };
+          tag: "call", 
+          obj: obj, 
+          name: methodName, 
+          arguments: args
+        }
+      }
+      else {
+        const callName = s.substring(c.from, c.to);
+        if (callName == "abs" || callName == "print") {
+          c.nextSibling(); // go to arglist
+          c.firstChild(); // go into arglist
+          c.nextSibling(); // find single argument in arglist
+          const arg = traverseExpr(c, s);
+          c.parent(); // pop arglist
+          c.parent(); // pop CallExpression
+          return {
+            tag: "builtin1",
+            name: callName,
+            arg: arg
+          };
+        }
+        else if (callName == "max" || callName == "min" || callName == "pow"){
+          c.nextSibling(); // go to arglist
+          c.firstChild(); // go into arglist
+          c.nextSibling(); // find first argument in arglist
+          const arg1 = traverseExpr(c, s);
+          c.nextSibling();
+          c.nextSibling(); // find second argument in arglist
+          const arg2 = traverseExpr(c, s);
+          c.parent(); // pop arglist
+          c.parent(); // pop CallExpression
+          return {
+            tag: "builtin2",
+            name: callName,
+            arg1: arg1,
+            arg2: arg2
+          };
+        }
+        else {
+          c.nextSibling(); // go to arglist
+          c.firstChild(); // go into arglist, handling (
+          c.nextSibling(); // find first argument in arglist
+          const args: Expr<any>[] = [];
+          while (c.node.name != ")") {
+            const arg = traverseExpr(c, s);
+            c.nextSibling(); // comma or )
+            if (c.node.name == ",") {
+              c.nextSibling();
+            }
+            console.log("Pushed argument " + arg.tag);
+            args.push(arg);
+          }
+          if (args.length > 0) {
+            throw Error("Function call found but not allowed.")
+          }
+          c.parent(); // pop arglist
+          c.parent(); // pop CallExpression
+
+          return {
+            tag: "construct",
+            name: callName
+          };
+        }
+        // else {
+        //   c.nextSibling(); // go to arglist
+        //   c.firstChild(); // go into arglist, handling (
+        //   c.nextSibling(); // find first argument in arglist
+        //   const args: Expr<any>[] = [];
+        //   while (c.node.name != ")") {
+        //     const arg = traverseExpr(c, s);
+        //     c.nextSibling(); // comma or )
+        //     if (c.node.name == ",") {
+        //       c.nextSibling();
+        //     }
+        //     console.log("Pushed argument " + arg.tag);
+        //     args.push(arg);
+        //   }
+        //   c.parent(); // pop arglist
+        //   c.parent(); // pop CallExpression
+
+        //   return {
+        //     tag: "call",
+        //     name: callName,
+        //     arguments: args,
+        //   };
+        // }
       }
     case "BinaryExpression":
       c.firstChild();
@@ -114,6 +180,18 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr<any> {
         value: arg0, 
         name: op
       }; 
+    case "MemberExpression":
+      c.firstChild();
+      let obj = traverseExpr(c, s);
+      c.nextSibling(); // Focuses .
+      c.nextSibling(); // Focuses PropertyName
+      const fieldName = s.substring(c.from, c.to);
+      c.parent(); // Pop MemberExpression
+      return {
+        tag: "lookup",
+        obj: obj,
+        name: fieldName
+      };
     default:
       throw new Error("Could not parse expr at " + c.from + " " + c.to + ": " + s.substring(c.from, c.to));
   }
@@ -121,6 +199,41 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr<any> {
 
 export function traverseStmt(c : TreeCursor, s : string) : Stmt<any> {
   switch(c.node.type.name) {
+    case "ClassDefinition":
+      const allClassStmts = [];
+      c.firstChild();
+      c.nextSibling(); // Focus on class name
+      const className = s.substring(c.from, c.to);
+      c.nextSibling(); // Focus on arglist/superclass
+      c.nextSibling(); // Focus on body
+      c.firstChild();  // Focus colon
+      c.nextSibling(); // Focuses first field
+      do {
+        allClassStmts.push(traverseStmt(c, s));
+      } while(c.nextSibling())
+      const classDecls : Array<Stmt<any>> = [];
+      const classFuncDefs : Array<Stmt<any>> = [];
+      allClassStmts.forEach(element => {
+        if (element.tag == "init") {
+          console.log(element.tag, element.type, element.value);
+          classDecls.push(element);
+        }
+        else if (element.tag == "funcdef") {
+          console.log(element.tag, element.decls, element.parameters, element.body);
+          classFuncDefs.push(element);
+        }
+        else {
+          throw Error("something other than variable declaration and function declaration appeared in class definition");
+        }
+      });
+      c.parent(); // Pop Body
+      c.parent(); // Pop classDefinition
+      return {
+        tag: "class",
+        name: className,
+        decls: classDecls,
+        funcdefs: classFuncDefs,
+      }
     case "AssignStatement":
       c.firstChild(); // go to name
       const name = s.substring(c.from, c.to);
@@ -162,7 +275,17 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt<any> {
           }
         }
         else {
-          throw Error("Type other than bool and int appeared.")
+          if (type == "none") {
+            throw Error("Type can't be none while initializing a variable")
+          }
+          else {
+            return {
+              tag: "init",
+              name: name,
+              type: {tag: "class", name: type},
+              value: value
+            }
+          }
         }
       }
     case "ExpressionStatement":
@@ -295,9 +418,9 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt<any> {
         c.nextSibling(); // Focus on Body
       } 
 
-      if (returntype != "int" && returntype != "bool" && returntype != "none") {
-        throw Error(`Unknown function return type ` + returntype);
-      }
+      // if (returntype != "int" && returntype != "bool" && returntype != "none") {
+      //   throw Error(`Unknown function return type ` + returntype);
+      // }
       
       c.firstChild();  // Focus on :
       c.nextSibling(); // starting statement
@@ -352,6 +475,15 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt<any> {
           body: funcBodyStmts,
           return: {tag: "bool"}
         }
+      } else {
+        return {
+          tag: "funcdef",
+          name: funcName,
+          decls: decls,
+          parameters: parameters,
+          body: funcBodyStmts,
+          return: {tag: "class", name: returntype}
+        }
       }
       throw Error("Reached a place that shouldn't actually reach in Parser for FunctionDef");
     case "ReturnStatement":
@@ -376,9 +508,12 @@ export function traverseParameters(c : TreeCursor, s : string) : Array<Parameter
     c.firstChild(); // Colon
     c.nextSibling(); // variable type
     let type = s.substring(c.from, c.to);
-    if (type != "int" && type != "bool") {
-      throw Error(`Function parameter of unknown type ` + type);
+    if (type == "none") {
+      throw Error(`Function parameter can't be of type none`);
     }
+    // if (type != "int" && type != "bool") {
+    //   throw Error(`Function parameter of unknown type ` + type);
+    // }
     console.log("Added parameter: ", {
       name: name,
       type: type
@@ -393,6 +528,12 @@ export function traverseParameters(c : TreeCursor, s : string) : Array<Parameter
       params.push({
         name: name,
         type: {tag: "bool"}
+      })
+    }
+    else {
+      params.push({
+        name: name,
+        type: {tag: "class", name: type}
       })
     }
     c.parent();

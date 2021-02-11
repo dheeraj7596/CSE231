@@ -13,17 +13,24 @@ export class BasicREPL {
   constructor(importObject : any) {
     this.importObject = importObject;
     if(!importObject.js) {
-      const memory = new WebAssembly.Memory({initial:10, maximum:20});
+      const memory = new WebAssembly.Memory({initial:2000, maximum:2000});
+      const view = new Int32Array(memory.buffer);
+      view[0] = 8;
       this.importObject.js = { memory: memory };
     }
     this.currentEnv = {
       globals: new Map(),
-      offset: 0,
+      offset: 1,
       types: new Map(),
       functypes: new Map(),
       funcDef: new Map(),
       funcStr: "",
-      localVars: new Set()
+      localVars: new Set(),
+      classVarNameTypes: new Map(),
+      classVarNameIndex: new Map(),
+      classIndexVarName: new Map(),
+      classFuncDefs: new Map(),
+      classDef: new Map()
     };
   }
   async run(source : string) : Promise<any> {

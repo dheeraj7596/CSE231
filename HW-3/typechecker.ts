@@ -1,9 +1,40 @@
+import { stat } from "fs";
+import { Statement } from "typescript";
 import { Stmt, Expr, Type } from "./ast";
 import { emptyEnv, GlobalEnv } from "./compiler";
 
 function typeEnvLookup(env : GlobalEnv, name : string) : Type {
   if(!env.types.has(name)) { console.log("Could not find types for " + name + " in types", env); throw new Error("Could not find types for name " + name); }
   return env.types.get(name);
+}
+
+function copyEnv(env : GlobalEnv) : GlobalEnv {
+  const newEnv = new Map(env.globals);
+  var newOffset = env.offset;
+  const newTypes = new Map(env.types);
+  const newfuncTypes = new Map(env.functypes);
+  const newfuncDef = new Map(env.funcDef);
+  const newfuncStr = env.funcStr;
+  const newclassVarNameTypes = new Map(env.classVarNameTypes);
+  const newclassVarNameIndex = new Map(env.classVarNameIndex);
+  const newclassindexVarName = new Map(env.classIndexVarName);
+  const newclassFuncDefs = new Map(env.classFuncDefs);
+  const newclassDef = new Map(env.classDef);
+
+  return {
+    globals: newEnv,
+    offset: newOffset,
+    types: newTypes,
+    functypes: newfuncTypes,
+    funcDef: newfuncDef,
+    funcStr: newfuncStr,
+    localVars: new Set(),
+    classVarNameTypes: newclassVarNameTypes,
+    classVarNameIndex: newclassVarNameIndex,
+    classIndexVarName: newclassindexVarName,
+    classFuncDefs: newclassFuncDefs,
+    classDef: newclassDef
+  }
 }
 
 function equalTypes(u : Type, t : Type) {
@@ -141,29 +172,131 @@ function tcExpr(expr : Expr<any>, env : GlobalEnv) : Expr<Type> {
       case "builtin2":
         var t : Type = {tag: "number"};
         return {tag: "builtin2", name: expr.name, arg1: expr.arg1, arg2: expr.arg2, a: t};
-      case "call":
-        const funcDefStmt = env.funcDef.get(expr.name)
-        if (funcDefStmt.tag != "funcdef") {
-          throw Error("Function not found in funcdef map. Found " + funcDefStmt.tag);
+      case "construct":
+        if (!env.classDef.has(expr.name) || !env.classFuncDefs.has(expr.name) || !env.classVarNameIndex.has(expr.name) || !env.classIndexVarName.has(expr.name) || !env.classVarNameTypes.has(expr.name)) {
+          throw Error("The Class " + expr.name + " is not found while calling constructor");
         }
-        if (funcDefStmt.parameters.length != expr.arguments.length) {
-          throw Error("Expected " + funcDefStmt.parameters.length + " arguments; got " + expr.arguments.length);
-        }
-        const funcReturnType = funcDefStmt.return;
-        for (let index = 0; index < expr.arguments.length; index++) {
-          const argExpr = expr.arguments[index];
-          const argtype = tcExpr(argExpr, env);
-          const expectedArgType = funcDefStmt.parameters[index].type;
-          if (!equalTypes(argtype.a, expectedArgType)) {
-            throw Error("Expected type `" + expectedArgType.tag + "`; got type `" + argtype.a.tag + "` in parameter " + index);
+        return { tag: "construct", name: expr.name, a: { tag: "class", name: expr.name }};
+      case "lookup":
+        let typedObjExpr = tcExpr(expr.obj, env);
+        let objType = typedObjExpr.a;
+        if(objType.tag === "class") {
+          const className = objType.name;
+          if (!env.classVarNameTypes.has(className) || !env.classFuncDefs.has(className)) {
+            throw Error("Class `" + className + "` not found in classVarNameTypes or classFuncDefs");
+          }
+          let varNameTypes = env.classVarNameTypes.get(className);
+          let funcDefs = env.classFuncDefs.get(className);
+          if (varNameTypes.has(expr.name) && funcDefs.has(expr.name)) {
+            throw Error("A field and method with same name `" + expr.name + "` cannot exist in a class `" + className + "`");
+          }
+
+          if (!varNameTypes.has(expr.name) && !funcDefs.has(expr.name)) {
+            throw Error("There is no Field or method named `" + expr.name + "` in class `" + className + "`");
+          }
+          
+          if (varNameTypes.has(expr.name)) {
+            let fieldType = varNameTypes.get(expr.name);
+            return {
+              tag: "lookup",
+              obj: typedObjExpr,
+              name: expr.name,
+              a: fieldType        // useful for compiling o.x.y.z
+            }
+          }
+
+          if (funcDefs.has(expr.name)) {
+            const funcDefStmt = funcDefs.get(expr.name)
+            if (funcDefStmt.tag != "funcdef") {
+              throw Error("Non-function found in classFuncDefs map. Found " + funcDefStmt.tag);
+            }
+            const funcReturnType = funcDefStmt.return;
+            return {
+              tag: "lookup",
+              obj: typedObjExpr,
+              name: expr.name,
+              a: funcReturnType        // useful for compiling o.x.y.z
+            }
           }
         }
-        return {tag: "call", name: expr.name, arguments: expr.arguments, a:funcReturnType};
+        else {
+          throw new Error("Got non-object in field lookup.")
+        }
+        break;
+      case "call":
+        let typedObjExprForCall = tcExpr(expr.obj, env);
+        let objTypeForCall = typedObjExprForCall.a;
+        if(objTypeForCall.tag === "class") {
+          const className = objTypeForCall.name;
+          if (!env.classFuncDefs.has(className)) {
+            throw Error("Class `" + className + "` not found in classFuncDefs");
+          }
+          
+          let funcDefs = env.classFuncDefs.get(className);
+
+          // Checking whether the function exists in class
+          if (!funcDefs.has(expr.name)) {
+            throw Error("Method `" + expr.name + "` not found in class `" + className + "`");
+          }
+          const funcDefStmt = funcDefs.get(expr.name)
+          if (funcDefStmt.tag != "funcdef") {
+            throw Error("Function not found in funcdef map. Found " + funcDefStmt.tag);
+          }
+
+          // Checking whether number of parameters in function is same as number of arguments passed
+          if (funcDefStmt.parameters.length != expr.arguments.length) {
+            throw Error("Expected " + funcDefStmt.parameters.length + " arguments; got " + expr.arguments.length);
+          }
+
+          // Checking whether each parameter type matches with each argument type.
+          const typedArgs : Array<Expr<Type>> = []
+          for (let index = 0; index < expr.arguments.length; index++) {
+            const argExpr = expr.arguments[index];
+            const typedargExpr = tcExpr(argExpr, env);
+            const expectedArgType = funcDefStmt.parameters[index].type;
+            if (!equalTypes(typedargExpr.a, expectedArgType)) {
+              throw Error("Expected type `" + expectedArgType.tag + "`; got type `" + typedargExpr.a.tag + "` in parameter " + index);
+            }
+            typedArgs.push(typedargExpr);
+          }
+          const funcReturnType = funcDefStmt.return;
+          return {
+            tag: "call", 
+            obj: typedObjExprForCall,
+            name: expr.name, 
+            arguments: typedArgs, 
+            a:funcReturnType
+          };
+        } 
+        else {
+          throw new Error("Got non-object in call expression.")
+        }
     }
   }
 
 function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
   switch(stmt.tag) {
+    case "class":
+      // Type-checking variable declarations
+      const typedDecls : Array<Stmt<Type>> = []
+      stmt.decls.forEach(element => {
+        typedDecls.push(typeCheckStmt(element, env));
+      });
+      // Type-checking function declarations
+      const typedFuncDefs : Array<Stmt<Type>> = []
+      stmt.funcdefs.forEach(element => {
+        typedFuncDefs.push(typeCheckStmt(element, env));
+      });
+      if ( stmt.decls.length != env.classIndexVarName.get(stmt.name).size || stmt.decls.length != env.classVarNameIndex.get(stmt.name).size || stmt.decls.length != env.classVarNameTypes.get(stmt.name).size ) {
+        throw Error("The size of decls and class specific maps in env is not same.");
+      }
+      return { 
+        tag: "class", 
+        name: stmt.name, 
+        decls: typedDecls, 
+        funcdefs: typedFuncDefs,
+        a: {tag: "none"}
+      }
     case "define":
       var exprType = tcExpr(stmt.value, env);
       var declType = typeEnvLookup(env, stmt.name);
@@ -184,6 +317,9 @@ function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
         a: type.a
       }
     case "init":
+      if (stmt.value.tag != "literal") {
+        throw("Error a variable must be initialized to a literal.")
+      }
       var exprType = tcExpr(stmt.value, env);
       var declType = stmt.type;
       if (!equalLiteralInitTypes(declType, exprType.a)) {
@@ -258,54 +394,103 @@ function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
       const returnType = stmt.return;
       const funcName = stmt.name;
       var localEnv = new Map(env.types);
+      var params = new Set<string>();
+      stmt.parameters.forEach(element => {
+        params.add(element.name);
+        localEnv.set(element.name, element.type);
+      });
       stmt.decls.forEach(element => {
         if (element.tag == "init") {
+          if (params.has(element.name)) {
+            throw Error("Duplicate declaration of identifier in same scope: " + element.name);
+          }
           localEnv.set(element.name, element.type);
         }
       });
-      stmt.parameters.forEach(element => {
-        localEnv.set(element.name, element.type);
-      });
-
+      
       // wrapping localEnv into GlobalEnv object
-      const wrappedLocalEnv = emptyEnv;
-      wrappedLocalEnv.types = localEnv;
-      wrappedLocalEnv.functypes = env.functypes;
-      wrappedLocalEnv.funcDef = env.funcDef;
+      const copiedGlobalEnv = copyEnv(env);
+      copiedGlobalEnv.types = localEnv;
 
       // checking declarations
+      const typedVarDeclsInFunction : Array<Stmt<Type>> = []
       stmt.decls.forEach(element => {
-        typeCheckStmt(element, wrappedLocalEnv);
+        typedVarDeclsInFunction.push(typeCheckStmt(element, copiedGlobalEnv));
       });
 
       // checking body statements
-      
-      // var returnTypeInCode = "none";
-      // stmt.body.forEach(element => {
-      //   if (element.tag == "return") {
-      //     returnTypeInCode = tcExpr(element.value, wrappedLocalEnv);
-      //   }
-      //   typeCheckStmt(element, wrappedLocalEnv);
-      // });
+      const typedBody : Array<Stmt<Type>> = []
+      stmt.body.forEach(element => {
+        typedBody.push(typeCheckStmt(element, copiedGlobalEnv));
+      });
 
-      // // checking returntype mentioned is same as returntype in the code.
-      // if (!equalTypes(returnTypeInCode, returnType)) {
-      //   throw("Expected type `" + returnType + "`; got type `" + returnTypeInCode + "`");
-      // }
+      // checking returntype mentioned is same as returntype in the code.
+      tcReturnType(stmt);
 
-      // setting the type map into functypes
       env.functypes.set(funcName, localEnv);
       return { 
         tag: "funcdef", 
         name: stmt.name, 
-        decls: stmt.decls, 
+        decls: typedVarDeclsInFunction, 
         parameters: stmt.parameters, 
-        body: stmt.body , 
+        body: typedBody, 
         return: stmt.return,
         a: {tag: "none"}
       }
+    case "return":
+      var typedExpr = tcExpr(stmt.value, env);
+      return {
+        tag: "return", 
+        value: typedExpr,
+        a: typedExpr.a
+      }
   }
 }
+
+function tcReturnTypeHelperFunction(a : Type, b : Type): Type {
+  if (a != null && !equalTypes(a, b)) {
+    throw Error("Multiple return statements with different return types " + a.tag + " " + b.tag);
+  }
+  return b;
+}
+
+function tcReturnType(funcdef: Stmt<any>) : void {
+  if (!(funcdef.tag == "funcdef")) {
+    throw Error("Error in tcReturnType. It shouldn't be an error here");
+  }
+  var returnType = funcdef.return;
+  var returnTypeInCode : Type = null;
+
+  funcdef.body.forEach(statement => {
+    if (statement.tag == "return") {
+      returnTypeInCode = tcReturnTypeHelperFunction(returnTypeInCode, statement.a);
+    }
+    else if (statement.tag == "if") {
+      var hasReturn = false;
+      statement.ifthn.forEach(element => {
+        if (element.tag == "return") {
+          hasReturn = true;
+          returnTypeInCode = tcReturnTypeHelperFunction(returnTypeInCode, element.a);
+        }
+      });
+
+      statement.else.forEach(element => {
+        if (element.tag == "return") {
+          if (!hasReturn) {
+            throw Error("All if-else blocks should have a return statement");
+          }
+          hasReturn = true;
+          returnTypeInCode = tcReturnTypeHelperFunction(returnTypeInCode, element.a);
+        }
+      });
+    }
+  });
+  
+  if (!equalTypes(returnType, returnTypeInCode)) {
+    throw Error("Expected type `" + returnType.tag + "`; got type `" + returnTypeInCode.tag + "`");
+  } 
+}
+
 
 function isDecl(s : Stmt<any>) {
   // Add class check here

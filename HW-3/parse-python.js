@@ -2,15 +2,17 @@ const python = require('lezer-python');
 
 const input = 
 `
-def contains(y:int, x:int, z:int) -> bool:
-    global y
-    i:int = 0
-    j: int = 4
-    return False
-
-y:int = 0
-contains(y, x, z)
+class Rat(object):
+    n : int = 0
+    d : int = 0
+    def new(self : Rat, r1: Rat, n : int, d : int) -> Rat:
+        r1.n = r1.n + r1.d + d
+        self.n = self.n + self.d + d
+r1 : Rat = None
+r1 = Rat()
+r1.mul(r2).mul(r2).n = 7
     `;
+  
 
 const tree = python.parser.parse(input);
 

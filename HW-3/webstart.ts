@@ -26,7 +26,7 @@ function webStart() {
             elt.innerText = arg;
             return BigInt(arg);
           }
-          else if (BigInt(arg) >= 2**32 && BigInt(arg) < 2**33) {
+          else if (BigInt(arg) >= 2**32 && BigInt(arg) < (2**32 + 2)) {
             // Bools are added with 2^32.
             arg = BigInt(arg) & BigInt(1);
             if (arg == 1) {
@@ -38,6 +38,11 @@ function webStart() {
             else {
               throw Error("Something other than True/False appeared.")
             }
+            return arg;
+          }
+          else if (BigInt(arg) == BigInt(2**32 + 2)) {
+            // This is None
+            elt.innerText = "";
             return arg;
           }
           
@@ -92,7 +97,7 @@ function webStart() {
       const elt = document.createElement("pre");
       document.getElementById("output").appendChild(elt);
 
-      if (BigInt(result) >= 2**32 && BigInt(result) < 2**33) {
+      if (BigInt(result) >= 2**32 && BigInt(result) < (2**32 + 2)) {
         // Bools are added with 2^32.
         result = BigInt(result) & BigInt(1);
         if (result == 1) {
@@ -104,6 +109,10 @@ function webStart() {
         else {
           throw Error("Something other than True/False appeared.")
         }
+      }
+      else if (BigInt(result) == BigInt(2**32 + 2)) {
+        // This is None
+        result = "";
       }
 
       elt.innerText = String(result);

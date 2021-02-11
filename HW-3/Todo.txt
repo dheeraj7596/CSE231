@@ -1,9 +1,12 @@
-Recursively check for return statement (asap fix)
-Checking body statements in a function
+Immediate:
+Check whether init statements are the first statements.
+implement "pass"
+parenthesized expression
+print Class
+
+Later:
 no-op inside if
 function call to a function that doesn't exist yet is not handled.
 redeclaring function throws error.
 Typechecking or compiling only when the function is called.
-Typechecking function body statements
 global variables shouldn't be saved.
-Check whether init statements are the first statements.

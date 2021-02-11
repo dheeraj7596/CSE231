@@ -44,7 +44,9 @@ export async function run(source : string, config: any) : Promise<[any, compiler
   var returnExpr1 = "";
   var returnExpr2 = "";
   const lastExpr = parsed[parsed.length - 1]
+  let globalsBefore = (config.env.globals as Map<string, number>).size;
   const compiled = compiler.compile(source, config.env);
+  let globalsAfter = compiled.newEnv.globals.size;
   if(lastExpr.tag === "expr" && !(isVoidCallLast(lastExpr, compiled.newEnv))) {
     returnType = "(result i64)";
     returnExpr1 = `(i32.const ${compiler.envLookup(compiled.newEnv, "scratchVar")})`;
@@ -57,9 +59,16 @@ export async function run(source : string, config: any) : Promise<[any, compiler
   // }
   const importObject = config.importObject;
   if(!importObject.js) {
-    const memory = new WebAssembly.Memory({initial:10, maximum:100});
+    const memory = new WebAssembly.Memory({initial:2000, maximum:2000});
     importObject.js = { memory: memory };
   }
+
+  const view = new Int32Array(importObject.js.memory.buffer);
+  let offsetBefore = view[0];
+  console.log("before updating: ", offsetBefore);
+  view[0] = offsetBefore + ((globalsAfter - globalsBefore) * 8);
+  console.log("after updating: ", view[0]);
+
   const wasmSource = `(module
     (func $print (import "imports" "print") (param i64) (result i64))
     (import "js" "memory" (memory 1))
