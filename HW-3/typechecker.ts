@@ -337,8 +337,11 @@ function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
       if (ifexprType.a.tag != "bool") {
         throw("Condition expression cannot be of type `" + ifexprType.a.tag + "`");
       }
+      var ifthnTypedStmts : Array<Stmt<Type>> = []
+      var elifthnTypedStmts : Array<Stmt<Type>> = []
+      var elseTypedStmts : Array<Stmt<Type>> = []
       stmt.ifthn.forEach(element => {
-        typeCheckStmt(element, env);
+        ifthnTypedStmts.push(typeCheckStmt(element, env));
       });
       if (stmt.elifcond != null) {
         var elifexprType = tcExpr(stmt.elifcond, env);
@@ -346,11 +349,11 @@ function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
           throw("Condition expression cannot be of type `" + elifexprType.a.tag + "`");
         }
         stmt.elifthn.forEach(element => {
-          typeCheckStmt(element, env);
+          elifthnTypedStmts.push(typeCheckStmt(element, env));
         });
       }
       stmt.else.forEach(element => {
-        typeCheckStmt(element, env);
+        elseTypedStmts.push(typeCheckStmt(element, env));
       });
 
       const ifLastReturnType = stmt.ifthn[stmt.ifthn.length - 1].tag;
@@ -369,11 +372,11 @@ function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
       
       return {
         tag: "if",
-        ifcond: stmt.ifcond, 
-        ifthn: stmt.ifthn, 
-        elifcond: stmt.elifcond, 
-        elifthn: stmt.elifthn, 
-        else: stmt.else,
+        ifcond: ifexprType, 
+        ifthn: ifthnTypedStmts, 
+        elifcond: elifexprType, 
+        elifthn: elifthnTypedStmts, 
+        else: elseTypedStmts,
         a: {tag: "none"},
       }
     case "while":
@@ -425,7 +428,7 @@ function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
       });
 
       // checking returntype mentioned is same as returntype in the code.
-      tcReturnType(stmt);
+      tcReturnType(typedBody, returnType);
 
       env.functypes.set(funcName, localEnv);
       return { 
@@ -454,14 +457,10 @@ function tcReturnTypeHelperFunction(a : Type, b : Type): Type {
   return b;
 }
 
-function tcReturnType(funcdef: Stmt<any>) : void {
-  if (!(funcdef.tag == "funcdef")) {
-    throw Error("Error in tcReturnType. It shouldn't be an error here");
-  }
-  var returnType = funcdef.return;
+function tcReturnType(typedBody: Array<Stmt<Type>>, returnType:Type) : void {
   var returnTypeInCode : Type = null;
 
-  funcdef.body.forEach(statement => {
+  typedBody.forEach(statement => {
     if (statement.tag == "return") {
       returnTypeInCode = tcReturnTypeHelperFunction(returnTypeInCode, statement.a);
     }
