@@ -21,6 +21,7 @@ export type Parameter<A> =
 export type Stmt<A> =
   | { a?: A, tag: "class", name: string, decls: Array<Stmt<A>>, funcdefs: Array<Stmt<A>> }
   | { a?: A, tag: "define", name: string, value: Expr<A> }
+  | { a?: A, tag: "clsdefine", name: Expr<A>, value: Expr<A> }
   | { a?: A, tag: "expr", expr: Expr<A> }
   | { a?: A, tag: "globals" }
   | { a?: A, tag: "init", name: string, type: Type, value: Expr<A>}

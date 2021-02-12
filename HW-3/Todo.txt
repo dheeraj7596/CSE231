@@ -3,6 +3,7 @@ Check whether init statements are the first statements.
 implement "pass"
 parenthesized expression
 print Class
+Initializing the same variable twice isn't throwing any error
 
 Later:
 no-op inside if

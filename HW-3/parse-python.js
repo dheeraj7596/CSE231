@@ -6,10 +6,12 @@ class Rat(object):
     n : int = 0
     d : int = 0
     def new(self : Rat, r1: Rat, n : int, d : int) -> Rat:
-        r1.n = r1.n + r1.d + d
-        self.n = self.n + self.d + d
+        return self
 r1 : Rat = None
+j:int = 0
 r1 = Rat()
+r1.n = 7
+j = 9
 r1.mul(r2).mul(r2).n = 7
     `;
   

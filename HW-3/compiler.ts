@@ -282,6 +282,11 @@ function codeGen(stmt: Stmt<Type>, env: GlobalEnv, isFunc: boolean = false) : Ar
         var valStmts = codeGenExpr(stmt.value, env, isFunc);
         return locationToStore.concat(valStmts).concat([`(i64.store)`]);
       }
+    case "clsdefine":
+      var nameStmts = codeGenExpr(stmt.name, env, isFunc);
+      var addrNameStmts = nameStmts.slice(0, nameStmts.length - 1);
+      var valStmts = codeGenExpr(stmt.value, env, isFunc);
+      return addrNameStmts.concat(valStmts).concat([`(i64.store)`]);
     case "expr":
       if (isFunc) {
         var exprStmts = codeGenExpr(stmt.expr, env, isFunc);
@@ -476,7 +481,7 @@ function codeGenExpr(expr : Expr<Type>, env: GlobalEnv, isFunc: boolean = false)
 
         if (index != (numDecls - 1)) {
           stmts = stmts.concat([`(i64.load (i32.const 0))`]); // Load the dynamic heap head offset
-          stmts = stmts.concat([`(i64.add (i64.const 8))`]); // Refer to the next word
+          stmts = stmts.concat([`(i64.add (i64.const ${(index + 1) * 8}))`]); // Refer to the next word
           stmts = stmts.concat([`(i32.wrap_i64)`]); // Since store address is i32, converting i64 to i32.
         }
       }

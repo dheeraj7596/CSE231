@@ -236,7 +236,20 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt<any> {
       }
     case "AssignStatement":
       c.firstChild(); // go to name
-      const name = s.substring(c.from, c.to);
+      var isVariable = false;
+      var name = null;
+      var clsname = null;
+      if (c.type.name == "MemberExpression") {
+        clsname = traverseExpr(c, s);
+      }
+      else if (c.type.name == "VariableName") {
+        isVariable = true;
+        name = s.substring(c.from, c.to);
+      }
+      else {
+        throw Error("Variable assignment should be either to a name or a memberexpression");
+      }
+
       c.nextSibling(); // go to equals or TypeDef
       const equalsOrType = s.substring(c.from, c.to);
       console.log("Type is here", equalsOrType);
@@ -244,12 +257,24 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt<any> {
         c.nextSibling(); // go to value
         const value = traverseExpr(c, s);
         c.parent();
-        return {
-          tag: "define",
-          name: name,
-          value: value
+        if (isVariable) {
+          return {
+            tag: "define",
+            name: name,
+            value: value
+          }
+        } 
+        else {
+          return {
+            tag: "clsdefine",
+            name: clsname,
+            value: value
+          }
         }
       } else {
+        if (!isVariable) {
+          throw Error("Initializing non-variable");
+        }
         c.firstChild();
         c.nextSibling();
         const type = s.substring(c.from, c.to);
