@@ -14,7 +14,7 @@ const importObject = {
         importObject.output += "\n";
         return BigInt(arg);
       }
-      else if (BigInt(arg) >= 2**32 && BigInt(arg) < 2**33) {
+      else if (BigInt(arg) >= 2**32 && BigInt(arg) < (2**32 + 2)) {
         arg = BigInt(arg) & BigInt(1);
         if (arg == 1) {
           importObject.output += "True";
@@ -29,6 +29,11 @@ const importObject = {
         else {
           throw Error("Something other than True/False appeared.")
         }
+      }
+      else if (BigInt(arg) == BigInt(2**32 + 2)) {
+        // This is None
+        importObject.output += "";
+        return "";
       }
     },
     abs: (arg: any) => {
@@ -173,6 +178,185 @@ describe('run(source, config) function', () => {
     print(j)`, config);
     expect(result).to.equal(BigInt(9));
   });
+
+  it('CLS: returns the right number', async () => {
+    const [result, env] = await run("987", config);
+    expect(result).to.equal(BigInt(987));
+  });
+
+  // 2- we can test the behavior of the compiler by also looking at the log 
+  // resulting from running the program
+  it('CLS: prints something right', async() => {
+    var [result, env] = await run(
+    `
+    class Rat(object):
+      n : int = 5
+      d : int = 10
+    
+    r: Rat = None
+    r = Rat()
+    print(r.n)
+    `, config);
+    expect(result).to.equal(BigInt(5));
+  });
+
+  // Note: it is often helpful to write tests for a functionality before you
+  // implement it. You will make this test pass!
+  it('CLS: adds two numbers', async() => {
+    const [result, env] = await run(
+    `
+    class Rat(object):
+      n : int = 5
+      d : int = 10
+    
+    r: Rat = None
+    r = Rat()
+    r.n + r.d
+    `, config);
+    expect(result).to.equal(BigInt(15));
+  });
+
+  it('CLS: subtracts two numbers', async() => {
+    const [result, env] = await run(
+    `
+    class Rat(object):
+      n : int = 5
+      d : int = 10
+      e: int = 15
+    
+    r: Rat = None
+    r = Rat()
+    r.d - r.n + r.e
+    `, config);
+    expect(result).to.equal(BigInt(20));
+  });
+
+  it('CLS: multiplies two numbers', async() => {
+    const [result, env] = await run(
+    `
+    class Rat(object):
+      n : int = 5
+      d : int = 10
+      e: int = 15
+    
+    r: Rat = None
+    r = Rat()
+    r.n * r.e
+    `, config);
+    expect(result).to.equal(BigInt(75));
+  });
+
+  it('CLS: absolute value of a positive number', async() => {
+    const [result, env] = await run(
+    `
+    class Rat(object):
+      n : int = 5
+      d : int = 10
+      e: int = 15
+    
+    r: Rat = None
+    r = Rat()
+    abs(r.n)
+    `, config);
+    expect(result).to.equal(BigInt(5));
+  });
+
+  it('CLS: absolute value of a negative number', async() => {
+    const [result, env] = await run(
+    `
+    class Rat(object):
+      n : int = 5
+      d : int = 10
+      e: int = 15
+    
+    r: Rat = None
+    r = Rat()
+    r.n = -5
+    abs(r.n)
+    `, config);
+    expect(result).to.equal(BigInt(5));
+  });
+
+  it('CLS: max value', async() => {
+    const [result, env] = await run(
+    `
+    class Rat(object):
+      n : int = 5
+      d : int = 10
+      e: int = 15
+    
+    r: Rat = None
+    r = Rat()
+    max(r.n, r.d)
+    `, config);
+    expect(result).to.equal(BigInt(10));
+  });
+
+  it('CLS: min value', async() => {
+    const [result, env] = await run(
+    `
+    class Rat(object):
+      n : int = 5
+      d : int = 10
+      e: int = 15
+    
+    r: Rat = None
+    r = Rat()
+    min(r.d, r.e)
+    `, config);
+    expect(result).to.equal(BigInt(10));
+  });
+
+  it('CLS: power', async() => {
+    const [result, env] = await run(
+    `
+    class Rat(object):
+      n : int = 2
+      d : int = 3
+      e: int = 15
+    
+    r: Rat = None
+    r = Rat()
+    
+    pow(r.n, r.d)`, config);
+    expect(result).to.equal(BigInt(8));
+  });
+
+  it('CLS: if-else if test', async() => {
+    const [result, env] = await run(`
+    class Rat(object):
+      i : int = 3
+      j : int = 5
+
+    r: Rat = None
+    r = Rat()
+    
+    if r.i == 3:
+        r.j = r.j + 1
+    else:
+        r.j = r.j + 4
+    print(r.j)`, config);
+    expect(result).to.equal(BigInt(6));
+  });
+
+  it('CLS: if-elif-else else test', async() => {
+    const [result, env] = await run(`
+    class Rat(object):
+      i : int = 4
+      j : int = 5
+
+    r: Rat = None
+    r = Rat()
+    
+    if r.i == 3:
+        r.j = r.j + 1
+    else:
+        r.j = r.j + 4
+    print(r.j)`, config);
+    expect(result).to.equal(BigInt(9));
+  });
+
+
 
   it('function', async() => {
     const [result, env] = await run(`
