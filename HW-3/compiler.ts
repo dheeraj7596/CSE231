@@ -18,6 +18,7 @@ export type GlobalEnv = {
   classIndexVarName: Map<string, Map<number, string>>; // Mapping between class name and a mapping from an index to its variable name
   classFuncDefs: Map<string, Map<string, Stmt<Type>>>; // Mapping between class name and a map that is between function names to function ast
   classDef: Map<string, Stmt<Type>>; // Mapping between class name and its ast.
+  typedAst: Array<Stmt<Type>>; // Total ast containing type information.
 }
 
 export const emptyEnv = { 
@@ -31,7 +32,8 @@ export const emptyEnv = {
   classVarNameTypes: new Map(),
   classVarNameIndex: new Map(),
   classFuncDefs: new Map(),
-  classDef: new Map()
+  classDef: new Map(),
+  typedAst: new Array()
 };
 
 export function augmentEnv(env: GlobalEnv, stmts: Array<Stmt<any>>) : GlobalEnv {
@@ -106,7 +108,8 @@ export function augmentEnv(env: GlobalEnv, stmts: Array<Stmt<any>>) : GlobalEnv 
     classVarNameIndex: newclassVarNameIndex,
     classIndexVarName: newclassIndexVarName,
     classFuncDefs: newclassFuncDefs,
-    classDef: newclassDef
+    classDef: newclassDef,
+    typedAst: stmts
   }
 }
 
@@ -160,7 +163,8 @@ function updateEnvWithTypedAst(env: GlobalEnv, stmts: Array<Stmt<any>>) : Global
     classVarNameIndex: newclassVarNameIndex,
     classIndexVarName: newclassIndexVarName,
     classFuncDefs: newclassFuncDefs,
-    classDef: newclassDef
+    classDef: newclassDef,
+    typedAst: stmts
   }
 }
 

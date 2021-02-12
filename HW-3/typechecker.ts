@@ -33,7 +33,8 @@ function copyEnv(env : GlobalEnv) : GlobalEnv {
     classVarNameIndex: newclassVarNameIndex,
     classIndexVarName: newclassindexVarName,
     classFuncDefs: newclassFuncDefs,
-    classDef: newclassDef
+    classDef: newclassDef,
+    typedAst: env.typedAst
   }
 }
 

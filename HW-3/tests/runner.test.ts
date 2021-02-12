@@ -15,13 +15,13 @@ const importObject = {
         return BigInt(arg);
       }
       else if (BigInt(arg) >= 2**32 && BigInt(arg) < (2**32 + 2)) {
-        arg = BigInt(arg) & BigInt(1);
-        if (arg == 1) {
+        var ans = BigInt(arg) & BigInt(1);
+        if (ans == BigInt(1)) {
           importObject.output += "True";
           importObject.output += "\n";
           return "True";
         }
-        else if (arg == 0) {
+        else if (ans == BigInt(0)) {
           importObject.output += "False";
           importObject.output += "\n";
           return "False";

@@ -28,11 +28,11 @@ function webStart() {
           }
           else if (BigInt(arg) >= 2**32 && BigInt(arg) < (2**32 + 2)) {
             // Bools are added with 2^32.
-            arg = BigInt(arg) & BigInt(1);
-            if (arg == 1) {
+            var ans = BigInt(arg) & BigInt(1);
+            if (ans == BigInt(1)) {
               elt.innerText = "True";
             }
-            else if (arg == 0) {
+            else if (ans == BigInt(0)) {
               elt.innerText = "False";
             }
             else {
@@ -97,25 +97,30 @@ function webStart() {
       const elt = document.createElement("pre");
       document.getElementById("output").appendChild(elt);
 
-      if (BigInt(result) >= 2**32 && BigInt(result) < (2**32 + 2)) {
-        // Bools are added with 2^32.
-        result = BigInt(result) & BigInt(1);
-        if (result == 1) {
-          result = "True";
+      var ans;
+      if (result.tag == "bool") {
+        console.log("I am in webstart bool");
+        if (result.value == true) {
+          ans = "True";
         }
-        else if (result == 0) {
-          result = "False";
-        }
-        else {
-          throw Error("Something other than True/False appeared.")
+        else if (result.value == false) {
+          ans = "False";
         }
       }
-      else if (BigInt(result) == BigInt(2**32 + 2)) {
-        // This is None
-        result = "";
+      else if (result.tag == "none") {
+        console.log("I am in webstart none");
+        ans = "";
       }
-
-      elt.innerText = String(result);
+      else if (result.tag == "num") {
+        console.log("I am in webstart number ", result);
+        ans = result.value;
+      }
+      else if (result.tag == "object") {
+        console.log("I am in webstart object");
+        ans = String(result.name) + " " + String(result.address);
+      }
+      console.log("Rendering result ", ans);
+      elt.innerText = String(ans);
     }
 
     function renderError(result : any) : void {
