@@ -24,7 +24,11 @@ if(typeof process !== "undefined") {
 
 function isVoidCallLast(stmt: Stmt<any>, env: compiler.GlobalEnv) : boolean {
   if (stmt.tag == "expr" && stmt.expr.tag == "call") {
-    const dummy = env.funcDef.get(stmt.expr.name)
+    if (stmt.expr.obj.a.tag != "class") {
+      throw Error("Function is called from non-object type " + stmt.expr.obj.a.tag);
+    }
+    var className = stmt.expr.obj.a.name;
+    const dummy = env.classFuncDefs.get(className).get(stmt.expr.name)
     if (dummy.tag != "funcdef") { // Always condition true
       throw Error("Function is not inside call method.");
     }  
@@ -43,10 +47,10 @@ export async function run(source : string, config: any) : Promise<[any, compiler
   var returnType = "";
   var returnExpr1 = "";
   var returnExpr2 = "";
-  const lastExpr = parsed[parsed.length - 1]
   let globalsBefore = (config.env.globals as Map<string, number>).size;
   const compiled = compiler.compile(source, config.env);
   let globalsAfter = compiled.newEnv.globals.size;
+  const lastExpr = compiled.newEnv.typedAst[compiled.newEnv.typedAst.length - 1];
   if(lastExpr.tag === "expr" && !(isVoidCallLast(lastExpr, compiled.newEnv))) {
     returnType = "(result i64)";
     returnExpr1 = `(i32.const ${compiler.envLookup(compiled.newEnv, "scratchVar")})`;

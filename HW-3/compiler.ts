@@ -171,6 +171,7 @@ function updateEnvWithTypedAst(env: GlobalEnv, stmts: Array<Stmt<any>>) : Global
 
 export function compile(source: string, env: GlobalEnv) : CompileResult {
   const ast = parse(source);
+  console.log("Parsed in Json", JSON.stringify(ast));
   var withDefines = augmentEnv(env, ast);
   withDefines.globals.forEach((value: number, key: string) => {
     console.log("withDefines globals ", key, value);
@@ -183,7 +184,11 @@ export function compile(source: string, env: GlobalEnv) : CompileResult {
 
   const funs : Array<string> = [];
   typedAst.forEach((stmt) => {
-    if(stmt.tag === "funcdef") { funs.push(codeGenFunc(stmt, withDefines).join("\n")); }
+    if(stmt.tag === "class") {
+      stmt.funcdefs.forEach(func => {
+        funs.push(codeGenFunc(func, withDefines, stmt.name).join("\n"));
+      });
+    }
   });
   
   const allFuncs = funs.join("\n\n");
@@ -223,12 +228,14 @@ export function envLookup(env : GlobalEnv, name : string) : number {
   return (env.globals.get(name) * 8); // 8-byte values
 }
 
-function codeGenFunc(stmt: Stmt<Type>, env: GlobalEnv) : Array<string> {
+function codeGenFunc(stmt: Stmt<Type>, env: GlobalEnv, className: string) : Array<string> {
   console.log("size of global map", env.globals.size);
   if (stmt.tag != "funcdef") {
     throw Error("Non-function in codeGenFunc " + stmt.tag);
   }
-   
+  
+  var functionName = className + "$" + stmt.name;
+
   var returnStmt = "";
   if (stmt.return.tag != "none") {
     returnStmt = "(result i64)";
@@ -265,7 +272,7 @@ function codeGenFunc(stmt: Stmt<Type>, env: GlobalEnv) : Array<string> {
     commands.push(`(unreachable)`);
   }
   var stmtsBody = commands.join("\n");
-  return [`(func $${stmt.name} ${params} ${returnStmt} ${stmtsBody})`];
+  return [`(func $${functionName} ${params} ${returnStmt} ${stmtsBody})`];
 }
 
 function isFunctionVar(varName: string, env: GlobalEnv) : boolean {
@@ -295,7 +302,11 @@ function codeGen(stmt: Stmt<Type>, env: GlobalEnv, isFunc: boolean = false) : Ar
       if (isFunc) {
         var exprStmts = codeGenExpr(stmt.expr, env, isFunc);
         if (stmt.expr.tag == "call") {
-          const dummy = env.funcDef.get(stmt.expr.name)
+          if (stmt.expr.obj.a.tag != "class") {
+            throw Error("Function is called from non-object type " + stmt.expr.obj.a.tag);
+          }
+          var className = stmt.expr.obj.a.name;
+          const dummy = env.classFuncDefs.get(className).get(stmt.expr.name)
           if (dummy.tag != "funcdef") { // Always condition true
             throw Error("Function is not inside call method.");
           }  
@@ -308,7 +319,11 @@ function codeGen(stmt: Stmt<Type>, env: GlobalEnv, isFunc: boolean = false) : Ar
       else {
         var exprStmts = codeGenExpr(stmt.expr, env, isFunc);
         if (stmt.expr.tag == "call") {
-          const dummy = env.funcDef.get(stmt.expr.name)
+          if (stmt.expr.obj.a.tag != "class") {
+            throw Error("Function is called from non-object type " + stmt.expr.obj.a.tag);
+          }
+          var className = stmt.expr.obj.a.name;
+          const dummy = env.classFuncDefs.get(className).get(stmt.expr.name)
           if (dummy.tag != "funcdef") { // Always condition true
             throw Error();
           }  
@@ -450,13 +465,21 @@ function codeGenExpr(expr : Expr<Type>, env: GlobalEnv, isFunc: boolean = false)
         throw new Error("Report this as a bug to the compiler developer, this shouldn't happen " + objtype.tag);
       }
       let className = objtype.name;
-      let offset = env.classVarNameIndex.get(className).get(expr.name);
-      return [
-        ...objstmts,
-        `(i64.add (i64.const ${offset * 8}))`,
-        `(i32.wrap_i64)`,
-        `(i64.load)`
-      ];
+      if (env.classVarNameIndex.get(className).has(expr.name)) { // Checking whether field for lookup is a variable
+        let offset = env.classVarNameIndex.get(className).get(expr.name);
+        return [
+          ...objstmts,
+          `(i64.add (i64.const ${offset * 8}))`,
+          `(i32.wrap_i64)`,
+          `(i64.load)`
+        ];
+      }
+      else if (env.classFuncDefs.get(className).has(expr.name)) { // Checking whether field for lookup is a function
+        return objstmts;
+      }
+      else {
+        throw Error("Field `" + expr.name + "` for lookup is neither a function nor a variable in class `" + className + "`");
+      }
     case "construct":
       var classNameForConstructor = expr.name;
       var typedAstForClass = env.classDef.get(classNameForConstructor);
@@ -570,10 +593,16 @@ function codeGenExpr(expr : Expr<Type>, env: GlobalEnv, isFunc: boolean = false)
       return unOpStmts;
     case "call":
       var valStmts : Array<string> = []
+      // Get argument for self first.
+      if (expr.obj.a.tag != "class") {
+        throw Error("Function is called from non-object type " + expr.obj.a.tag);
+      }
+      valStmts = valStmts.concat(codeGenExpr(expr.obj, env, isFunc));
       expr.arguments.forEach(element => {
         valStmts = valStmts.concat(codeGenExpr(element, env, isFunc));
       });
-      valStmts.push(`(call $${expr.name})`);
+      var functionName = expr.obj.a.name + "$" + expr.name;
+      valStmts.push(`(call $${functionName})`);
       return valStmts;
   }
 }

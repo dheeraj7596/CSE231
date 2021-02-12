@@ -220,7 +220,7 @@ function tcExpr(expr : Expr<any>, env : GlobalEnv) : Expr<Type> {
               tag: "lookup",
               obj: typedObjExpr,
               name: expr.name,
-              a: funcReturnType        // useful for compiling o.x.y.z
+              a: objType        // For function it returns the inner object type
             }
           }
         }
@@ -229,6 +229,7 @@ function tcExpr(expr : Expr<any>, env : GlobalEnv) : Expr<Type> {
         }
         break;
       case "call":
+        console.log("The type of the object ", expr.obj);
         let typedObjExprForCall = tcExpr(expr.obj, env);
         let objTypeForCall = typedObjExprForCall.a;
         if(objTypeForCall.tag === "class") {
@@ -249,8 +250,8 @@ function tcExpr(expr : Expr<any>, env : GlobalEnv) : Expr<Type> {
           }
 
           // Checking whether number of parameters in function is same as number of arguments passed
-          if (funcDefStmt.parameters.length != expr.arguments.length) {
-            throw Error("Expected " + funcDefStmt.parameters.length + " arguments; got " + expr.arguments.length);
+          if (funcDefStmt.parameters.length != (expr.arguments.length + 1)) {
+            throw Error("Expected " + (funcDefStmt.parameters.length - 1) + " arguments; got " + expr.arguments.length);
           }
 
           // Checking whether each parameter type matches with each argument type.
@@ -258,7 +259,7 @@ function tcExpr(expr : Expr<any>, env : GlobalEnv) : Expr<Type> {
           for (let index = 0; index < expr.arguments.length; index++) {
             const argExpr = expr.arguments[index];
             const typedargExpr = tcExpr(argExpr, env);
-            const expectedArgType = funcDefStmt.parameters[index].type;
+            const expectedArgType = funcDefStmt.parameters[index + 1].type;
             if (!equalTypes(typedargExpr.a, expectedArgType)) {
               throw Error("Expected type `" + expectedArgType.tag + "`; got type `" + typedargExpr.a.tag + "` in parameter " + index);
             }
