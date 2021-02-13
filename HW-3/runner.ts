@@ -71,6 +71,7 @@ export async function run(source : string, config: any) : Promise<[any, compiler
   let offsetBefore = view[0];
   console.log("before updating: ", offsetBefore);
   view[0] = offsetBefore + ((globalsAfter - globalsBefore) * 8);
+  compiled.newEnv.offset = view[0]/8;
   console.log("after updating: ", view[0]);
 
   const wasmSource = `(module

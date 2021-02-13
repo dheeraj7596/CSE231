@@ -48,9 +48,11 @@ export function augmentEnv(env: GlobalEnv, stmts: Array<Stmt<any>>) : GlobalEnv 
   const newclassFuncDefs = new Map(env.classFuncDefs);
   const newclassDef = new Map(env.classDef);
   const newfuncStr = env.funcStr;
-  newEnv.set("scratchVar", newOffset);
-  newTypes.set("scratchVar", {tag: "number"});
-  newOffset += 1
+  if (!newEnv.has("scratchVar")) {
+    newEnv.set("scratchVar", newOffset);
+    newOffset += 1
+    newTypes.set("scratchVar", {tag: "number"});
+  }
   stmts.forEach((s) => {
     switch(s.tag) {
       case "define":
