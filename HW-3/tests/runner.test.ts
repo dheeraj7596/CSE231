@@ -19,12 +19,12 @@ const importObject = {
         if (ans == BigInt(1)) {
           importObject.output += "True";
           importObject.output += "\n";
-          return "True";
+          return BigInt(arg);
         }
         else if (ans == BigInt(0)) {
           importObject.output += "False";
           importObject.output += "\n";
-          return "False";
+          return BigInt(arg);
         }
         else {
           throw Error("Something other than True/False appeared.")
@@ -33,7 +33,7 @@ const importObject = {
       else if (BigInt(arg) == BigInt(2**32 + 2)) {
         // This is None
         importObject.output += "";
-        return "";
+        return arg;
       }
     },
     abs: (arg: any) => {
@@ -356,92 +356,151 @@ describe('run(source, config) function', () => {
     expect(result).to.equal(BigInt(9));
   });
 
-
-
-  it('function', async() => {
+  it('CLS: function', async() => {
     const [result, env] = await run(`
-    def contains(y:int, x:int, z:int) -> int:
-      i:int = 01
-      if i == 0:
-          i = 243
-      else:
-          i = 3
-      while i < 10:
-          i = i + 1
-      return i
-    y:int = 0
-    x:int = 1
-    z:int = 2
-    contains(y, x, z)
-    `, config);
-    expect(result).to.equal(BigInt(10));
+    class Rat(object):
+      n : int = 0
+      d : int = 0
+      def new(self : Rat, n : int, d : int) -> Rat:
+          self.n = n
+          self.d = d
+          return self
+      def mul(self : Rat, other : Rat) -> Rat:
+          obj: Rat = None
+          obj = Rat().new(9, 10)
+          return Rat().new(self.n * other.n * obj.n, self.d * other.d * obj.d)
+    r1 : Rat = None
+    r2 : Rat = None
+    r1 = Rat().new(4, 5)
+    r2 = Rat().new(2, 3)
+    r1.mul(r2).mul(r2).n`, config);
+    expect(result).to.equal(BigInt(1296));
   });
 
-  it('function-global', async() => {
+  it('CLS: function-global', async() => {
     const [result, env] = await run(`
-    def func(y:int) -> int:
-        i:int = 1
-        i = i + a
-        return i
-
-    a:int = 9
-    y:int = 0
-    func(y)
+    class Rat(object):
+      n : int = 0
+      d : int = 0
+      def new(self : Rat, n : int, d : int) -> Rat:
+          self.n = n
+          self.d = d
+          return self
+      def mul(self : Rat, other : Rat) -> Rat:
+          obj: Rat = None
+          obj = Rat().new(9, 10)
+          return Rat().new(self.n * other.n * obj.n, self.d * other.d * obj.d)
+      def func(self: Rat, y:int) -> int:
+          return self.n + y + a
+    a: int = 10
+    r1 : Rat = None
+    r2 : Rat = None
+    r1 = Rat().new(4, 5)
+    r2 = Rat().new(2, 3)
+    r1.func(5)
     `, config);
-    expect(result).to.equal(BigInt(10));
+    expect(result).to.equal(BigInt(19));
   });
 
-  it('function-function', async() => {
+  it('CLS: function-function', async() => {
     const [result, env] = await run(`
-    def isEven(n:int) -> bool:
-      if n %2 == 0:
-          return True
-      else:
-          return False
-        
-    def isOdd(n:int) -> bool:
-      if isEven(n):
-          return False
-      else:
-          return True
+    class Rat(object):
+      n : int = 0
+      d : int = 0
+      def new(self : Rat, n : int, d : int) -> Rat:
+          self.n = n
+          self.d = d
+          return self
+      def mul(self : Rat, other : Rat) -> Rat:
+          obj: Rat = None
+          obj = Rat().new(9, 10)
+          return Rat().new(self.n * other.n * obj.n, self.d * other.d * obj.d)
+      def isEven(self : Rat, n:int) -> bool:
+          if n %2 == 0:
+              return True
+          else:
+              return False
+      def isOdd(self : Rat, n:int) -> bool:
+          if self.isEven(n):
+              return False
+          else:
+              return True
 
-    isOdd(4)
+    r1 : Rat = None
+    r2 : Rat = None
+    r1 = Rat().new(4, 5)
+    r2 = Rat().new(2, 3)
+    print(r1.isOdd(r1.n))
     `, config);
     expect(result).to.equal(BigInt(4294967296));
   });
 
-  it('recursive-function', async() => {
+  it('CLS: recursive-function', async() => {
     const [result, env] = await run(`
-    def Fibonacci(n:int) -> int: 
-      if n==0: 
-          return 0
-      elif n==1: 
-          return 1
-      else: 
-          return Fibonacci(n-1)+Fibonacci(n-2)
-    Fibonacci(9)
+    class Rat(object):
+      n : int = 0
+      d : int = 0
+      def new(self : Rat, n : int, d : int) -> Rat:
+          self.n = n
+          self.d = d
+          return self
+      def mul(self : Rat, other : Rat) -> Rat:
+          obj: Rat = None
+          obj = Rat().new(9, 10)
+          return Rat().new(self.n * other.n * obj.n, self.d * other.d * obj.d)
+      def Fibonacci(self : Rat) -> int: 
+          arg1: Rat = None
+          arg2: Rat = None
+          arg1 = Rat().new(self.n-1, self.d)
+          arg2 = Rat().new(self.n-2, self.d)
+          if self.n==0: 
+              return 0
+          elif self.n==1: 
+              return 1
+          else: 
+              return arg1.Fibonacci()+arg2.Fibonacci()
+
+    r1 : Rat = None
+    r2 : Rat = None
+    r1 = Rat().new(4, 5)
+    r2 = Rat().new(9, 3)
+    r2.Fibonacci()
     `, config);
     expect(result).to.equal(BigInt(34));
   });
 
-  it('mutually-recursive-function', async() => {
+  it('CLS: mutually-recursive-function', async() => {
     const [result, env] = await run(`
-    def isEven(n:int) -> bool:
-      if n %2 == 0:
-          return True
-      else:
-          return isOdd(n-1)
+    class Rat(object):
+      n : int = 0
+      d : int = 0
+      def new(self : Rat, n : int, d : int) -> Rat:
+          self.n = n
+          self.d = d
+          return self
+      def mul(self : Rat, other : Rat) -> Rat:
+          obj: Rat = None
+          obj = Rat().new(9, 10)
+          return Rat().new(self.n * other.n * obj.n, self.d * other.d * obj.d)
+      def isEven(self:Rat, n:int) -> bool:
+          if n %2 == 0:
+              return True
+          else:
+              return self.isOdd(n-1)
+      def isOdd(self:Rat, n:int) -> bool:
+        if n%2 == 0:
+            return False
+        else:
+            return self.isEven(n-1)
+            
 
-
-    def isOdd(n:int) -> bool:
-      if n%2 == 0:
-          return False
-      else:
-          return isEven(n-1)
-    
-    isOdd(4)        
+    r1 : Rat = None
+    r2 : Rat = None
+    r1 = Rat().new(4, 5)
+    r2 = Rat().new(9, 3)
+    print(r1.isOdd(r2.n))
     `, config);
-    expect(result).to.equal(BigInt(4294967296));
+    expect(result).to.equal(BigInt(4294967297));
   });
   // TODO: add additional tests here to ensure the compiler runs as expected
 });
