@@ -29,6 +29,7 @@ export type Stmt<A> =
   | { a?: A, tag: "while", cond: Expr<A>, body: Array<Stmt<A>>}
   | { a?: A, tag: "funcdef", name: string, decls: Array<Stmt<A>>, parameters: Array<Parameter<A>>, body: Array<Stmt<A>> , return: Type }
   | { a?: A, tag: "return", value: Expr<A> }
+  | { a?: A, tag: "pass" }
 
 
 export type Expr<A> =

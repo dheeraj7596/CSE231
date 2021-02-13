@@ -465,6 +465,11 @@ function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
         value: typedExpr,
         a: typedExpr.a
       }
+    case "pass":
+      return {
+        tag: "pass", 
+        a: {tag: "none"}
+      }
   }
 }
 
@@ -503,6 +508,10 @@ function tcReturnType(typedBody: Array<Stmt<Type>>, returnType:Type) : void {
     }
   });
   
+  if (returnTypeInCode == null) {
+    returnTypeInCode = {tag: "none"};
+  }
+
   if (!equalTypes(returnType, returnTypeInCode)) {
     throw Error("Expected type `" + returnType.tag + "`; got type `" + returnTypeInCode.tag + "`");
   } 

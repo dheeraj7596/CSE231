@@ -517,6 +517,14 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt<any> {
       var value = traverseExpr(c, s);
       c.parent();
       return { tag: "return", value: value };
+    case "PassStatement":
+      c.firstChild();
+      var pass = s.substring(c.from, c.to)
+      if (pass != "pass") {
+        throw Error("Pass statement wrongly detected");
+      }
+      c.parent();
+      return { tag: "pass" }
     default:
       throw new Error("Could not parse stmt at " + c.node.from + " " + c.node.to + ": " + s.substring(c.from, c.to));
   }

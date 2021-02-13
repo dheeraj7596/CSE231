@@ -437,6 +437,20 @@ function codeGen(stmt: Stmt<Type>, env: GlobalEnv, isFunc: boolean = false) : Ar
       var valStmts = codeGenExpr(stmt.value, env, isFunc);
       valStmts.push("(return)");
       return valStmts;
+    case "pass":
+      // Add dummy instructions that add nothing on stack like, get and set scratch variables.
+      var dummyPassStmts : Array<string> = []
+      if (isFunc) {
+        dummyPassStmts = dummyPassStmts.concat([`(local.get $localScratchVar)`]);
+        dummyPassStmts = dummyPassStmts.concat([`(local.set $localScratchVar)`]);
+      }
+      else {
+        dummyPassStmts = dummyPassStmts.concat([`(i32.const ${envLookup(env, "scratchVar")}) ;; $scratchVar`]);
+        dummyPassStmts = dummyPassStmts.concat([`(i64.load)`]);
+        dummyPassStmts = dummyPassStmts.concat([`(i32.const ${envLookup(env, "scratchVar")}) ;; $scratchVar`]);
+        dummyPassStmts = dummyPassStmts.concat([`(i64.store)`]);
+      }
+      return dummyPassStmts;
   }
 }
 

@@ -1,13 +1,9 @@
 Immediate:
 Check whether init statements are the first statements.
-implement "pass"
 parenthesized expression
-print Class
 Initializing the same variable twice isn't throwing any error
 
 Later:
 no-op inside if
-function call to a function that doesn't exist yet is not handled.
 redeclaring function throws error.
-Typechecking or compiling only when the function is called.
 global variables shouldn't be saved.
