@@ -502,5 +502,78 @@ describe('run(source, config) function', () => {
     `, config);
     expect(result).to.equal(BigInt(4294967297));
   });
+
+  it('CLS: is operator:1', async() => {
+    const [result, env] = await run(`
+    class Rat(object):
+      n : int = 0
+      d : int = 0
+    
+    class Ratile(object):
+      n : int = 0
+      d : int = 0
+
+    r1 : Rat = None
+    r2 : Ratile = None
+    print(r1 is r2)
+    `, config);
+    expect(result).to.equal(BigInt(4294967297));
+  });
+
+  it('CLS: is operator:2', async() => {
+    const [result, env] = await run(`
+    class Rat(object):
+      n : int = 0
+      d : int = 0
+    
+    class Ratile(object):
+      n : int = 0
+      d : int = 0
+
+    r1 : Rat = None
+    r2 : Rat = None
+    r1 = Rat()
+    r2 = Rat()
+    print(r1 is r2)
+    `, config);
+    expect(result).to.equal(BigInt(4294967296));
+  });
+
+  it('CLS: is operator:3', async() => {
+    const [result, env] = await run(`
+    class Rat(object):
+      n : int = 0
+      d : int = 0
+    
+    class Ratile(object):
+      n : int = 0
+      d : int = 0
+
+    r1 : Rat = None
+    r2 : Rat = None
+    print(r1 is None)
+    `, config);
+    expect(result).to.equal(BigInt(4294967297));
+  });
+
+  it('CLS: is operator:4', async() => {
+    const [result, env] = await run(`
+    class Rat(object):
+      n : int = 0
+      d : int = 0
+    
+    class Ratile(object):
+      n : int = 0
+      d : int = 0
+
+    r1 : Rat = None
+    r2 : Rat = None
+    r3: Rat = None
+    r1 = Rat()
+    r3 = r1
+    print(r1 is r3)
+    `, config);
+    expect(result).to.equal(BigInt(4294967297));
+  });
   // TODO: add additional tests here to ensure the compiler runs as expected
 });

@@ -556,7 +556,7 @@ function codeGenExpr(expr : Expr<Type>, env: GlobalEnv, isFunc: boolean = false)
       else if(expr.name == "%") {
         binOpArgStmts = binOpArgStmts.concat([`(i64.rem_u)`]);
       }
-      else if(expr.name == "==") {
+      else if(expr.name == "==" || expr.name == "is") {
         binOpArgStmts = binOpArgStmts.concat([`(i64.eq)`]);
         binOpArgStmts = binOpArgStmts.concat([`(i64.extend_i32_u)`]);
         binOpArgStmts = binOpArgStmts.concat([`(i64.const 4294967296)`])

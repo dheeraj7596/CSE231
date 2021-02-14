@@ -473,6 +473,10 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt<any> {
 
       c.parent();      // Pop to Body
       c.parent();      // Pop to FunctionDefinition
+      if (returntype == "None") {
+        throw Error("Function return type can't be None");
+      }
+
       if (returntype == "none") {
         return {
           tag: "funcdef",
@@ -541,7 +545,7 @@ export function traverseParameters(c : TreeCursor, s : string) : Array<Parameter
     c.firstChild(); // Colon
     c.nextSibling(); // variable type
     let type = s.substring(c.from, c.to);
-    if (type == "none") {
+    if (type == "None") {
       throw Error(`Function parameter can't be of type none`);
     }
     // if (type != "int" && type != "bool") {

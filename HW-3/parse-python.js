@@ -5,10 +5,9 @@ const input =
 class Rat(object):
     n : int = 0
     d : int = 0
-    def new(self : Rat, r1: Rat, n : int, d : int) -> Rat:
+    def new(self : Rat, r1: Rat, n : int, d : int) -> None:
         pass
-r1 : Rat = None
-j:int = 0
+
     `;
   
 

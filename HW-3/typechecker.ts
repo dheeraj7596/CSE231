@@ -42,6 +42,7 @@ function equalTypes(u : Type, t : Type) {
   if(u.tag === "number" && t.tag === "number") { return true; }
   else if(u.tag === "bool" && t.tag === "bool") { return true; }
   else if(u.tag === "class" && t.tag === "class") { return u.name === t.name; }
+  else if(u.tag === "class" && t.tag === "none") { return true; }
   else if(u.tag === "none" && t.tag === "none") { return true; }
   else { return false; }
 }
@@ -170,6 +171,13 @@ function tcExpr(expr : Expr<any>, env : GlobalEnv) : Expr<Type> {
           var t : Type = {tag: "bool"};
           return {tag: "binop", name: expr.name, arg1: arg1Type, arg2: arg2Type, a:t};
         }
+        else if (expr.name == "is") {
+          if ((arg1Type.a.tag != "class" && arg1Type.a.tag != "none") || (arg2Type.a.tag != "class" && arg2Type.a.tag != "none")) {
+            throw("Cannot apply operator `is` on types other than class or None");
+          }
+          var t : Type = {tag: "bool"};
+          return {tag: "binop", name: expr.name, arg1: arg1Type, arg2: arg2Type, a:t};
+        }
         break;
       case "builtin2":
         var t : Type = {tag: "number"};
@@ -290,7 +298,15 @@ function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
       });
       // Type-checking function declarations
       const typedFuncDefs : Array<Stmt<Type>> = []
+      var funcNames = new Set<string>();
       stmt.funcdefs.forEach(element => {
+        if (element.tag != "funcdef") {
+          throw Error("Non-function inside funcdefs of a class");
+        }
+        if (funcNames.has(element.name)) {
+          throw Error("Duplicate declaration of identifier in same scope: " + element.name); 
+        }
+        funcNames.add(element.name);
         typedFuncDefs.push(typeCheckStmt(element, env));
       });
       if ( stmt.decls.length != env.classIndexVarName.get(stmt.name).size || stmt.decls.length != env.classVarNameIndex.get(stmt.name).size || stmt.decls.length != env.classVarNameTypes.get(stmt.name).size ) {
@@ -342,6 +358,9 @@ function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
       var declType = stmt.type;
       if (!equalLiteralInitTypes(declType, exprType.a)) {
         throw("Expected type `" + declType.tag + "`; got type `" + exprType.tag + "`");
+      }
+      if (declType.tag == "class" && !env.classDef.has(declType.name)) {
+        throw("Invalid type annotation; there is no class named: " + declType.name);
       }
       return {
         tag: "init",
@@ -416,8 +435,17 @@ function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
       const funcName = stmt.name;
       var localEnv = new Map(env.types);
       var params = new Set<string>();
+      if (returnType.tag == "class" && !env.classDef.has(returnType.name)) {
+        throw("Invalid type annotation; there is no class named: " + returnType.name);
+      }
       stmt.parameters.forEach(element => {
         params.add(element.name);
+        if (element.type.tag == "none") {
+          throw Error("Function parameter can't be of type none");
+        }
+        else if (element.type.tag == "class" && !env.classDef.has(element.type.name)) {
+          throw("Invalid type annotation; there is no class named: " + element.type.name);
+        }
         localEnv.set(element.name, element.type);
       });
       stmt.decls.forEach(element => {
