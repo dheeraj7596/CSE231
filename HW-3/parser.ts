@@ -192,6 +192,13 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr<any> {
         obj: obj,
         name: fieldName
       };
+    case "ParenthesizedExpression":
+      c.firstChild(); // Focus on Opening bracket (
+      c.nextSibling(); // Focus on Expression
+      let mainExpr = traverseExpr(c, s);
+      c.nextSibling(); // Focus on Closing bracket )
+      c.parent(); // Pop ParenthesizedExpression
+      return mainExpr;
     default:
       throw new Error("Could not parse expr at " + c.from + " " + c.to + ": " + s.substring(c.from, c.to));
   }
