@@ -8,11 +8,6 @@ const importObject = {
       console.log("Logging from WASM: ", arg);
     },
 
-    print_global_func: (pos: number, value: number) => {
-      var name = importObject.nameMap[pos];
-      console.log(name, "=", value);
-    },
-
     // print_globals_func: () => {
     //   var env : GlobalEnv = (importObject as any).env;
     //   env.globals.forEach((pos, name) => {
@@ -22,13 +17,6 @@ const importObject = {
     // }
   },
 
-  nameMap: new Array<string>(),
-
-  updateNameMap : (env : GlobalEnv) => {
-    env.globals.forEach((pos, name) => {
-      importObject.nameMap[pos] = name;
-    })
-  }
 };
 
 async function nodeStart(source : string) {

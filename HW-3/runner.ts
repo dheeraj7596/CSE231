@@ -41,6 +41,42 @@ function isVoidCallLast(stmt: Stmt<any>, env: compiler.GlobalEnv) : boolean {
   }
 }
 
+export async function typecheckDynamic(source : string, config: any) : Promise<compiler.GlobalEnv> {
+  const wabtInterface = await wabt();
+  const parsed = parse(source);
+  var returnType = "";
+  var returnExpr1 = "";
+  var returnExpr2 = "";
+  let globalsBefore = (config.env.globals as Map<string, number>).size;
+  const compiled = compiler.compile(source, config.env);
+  let globalsAfter = compiled.newEnv.globals.size;
+  const lastExpr = compiled.newEnv.typedAst[compiled.newEnv.typedAst.length - 1];
+  if(lastExpr.tag === "expr" && !(isVoidCallLast(lastExpr, compiled.newEnv))) {
+    returnType = "(result i64)";
+    returnExpr1 = `(i32.const ${compiler.envLookup(compiled.newEnv, "scratchVar")})`;
+    returnExpr2 = `(i64.load)`;
+  } 
+  // else if(lastExpr.tag === "if" && lastExpr.ifthn[lastExpr.ifthn.length - 1].tag === "expr") {
+  //   returnType = "(result i64)";
+  //   returnExpr1 = `(i32.const ${compiler.envLookup(compiled.newEnv, "scratchVar")})`;
+  //   returnExpr2 = `(i64.load)`;
+  // }
+  const importObject = config.importObject;
+  if(!importObject.js) {
+    const memory = new WebAssembly.Memory({initial:2000, maximum:2000});
+    importObject.js = { memory: memory };
+  }
+
+  const view = new Int32Array(importObject.js.memory.buffer);
+  let offsetBefore = view[0];
+  console.log("before updating: ", offsetBefore);
+  view[0] = offsetBefore + ((globalsAfter - globalsBefore) * 8);
+  compiled.newEnv.offset = view[0]/8;
+  console.log("after updating: ", view[0]);
+
+  return compiled.newEnv;
+}
+
 export async function run(source : string, config: any) : Promise<[any, compiler.GlobalEnv]> {
   const wabtInterface = await wabt();
   const parsed = parse(source);

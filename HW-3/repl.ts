@@ -1,6 +1,6 @@
-import {run} from "./runner";
+import {run, typecheckDynamic} from "./runner";
 import {emptyEnv, GlobalEnv} from "./compiler";
-import { Value } from "./ast";
+import { Type, Value } from "./ast";
 
 interface REPL {
   run(source : string) : Promise<any>;
@@ -34,8 +34,15 @@ export class BasicREPL {
       typedAst: new Array()
     };
   }
+
+  async tc(source : string) : Promise<Type> {
+    const newEnv = await typecheckDynamic(source, {importObject: this.importObject, env: this.currentEnv});
+    this.currentEnv = newEnv;
+    var lastStmt = newEnv.typedAst[newEnv.typedAst.length - 1];
+    return lastStmt.a;
+  } 
+
   async run(source : string) : Promise<Value> {
-    this.importObject.updateNameMap(this.currentEnv); // is this the right place for updating the object's env?
     const [result, newEnv] = await run(source, {importObject: this.importObject, env: this.currentEnv});
     this.currentEnv = newEnv;
     var lastStmt = newEnv.typedAst[newEnv.typedAst.length - 1];
@@ -57,7 +64,7 @@ export class BasicREPL {
       console.log("I am in number ", result);
 
       if (result < 2**32) { // This is a number
-        return { tag: "num", value: result };
+        return { tag: "num", value: Number(result) };
       }
       else if (BigInt(result) >= 2**32 && BigInt(result) < (2**32 + 2)) {
         // Bools are added with 2^32.
@@ -73,12 +80,11 @@ export class BasicREPL {
         // This is None
         return { tag: "none" };
       }
-      return { tag: "num", value: result };
+      return { tag: "num", value: Number(result) };
     }
     else if (lastStmt.a.tag == "class") {
-      // Fix this!!!!!
       console.log("I am in class", result);
-      return { tag: "object", name: lastStmt.a.name, address: newEnv.globals.get(lastStmt.a.name)};
+      return { tag: "object", name: lastStmt.a.name, address: Number(result)};
     }
   }
 }

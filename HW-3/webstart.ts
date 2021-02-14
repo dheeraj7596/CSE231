@@ -13,11 +13,6 @@ function webStart() {
           document.getElementById("output").appendChild(elt);
           elt.innerText = arg;
         },
-        print_global_func: (pos: number, value: number) => {
-          var name = importObject.nameMap[pos];
-          var msg = name + " = " + value;
-          renderResult(msg);
-        },
         print: (arg : any) => {
           console.log("Logging from WASM: ", arg);
           const elt = document.createElement("pre");
@@ -80,13 +75,6 @@ function webStart() {
           return BigInt(out);
         },
       },
-      nameMap: new Array<string>(),
-    
-      updateNameMap : (env : GlobalEnv) => {
-        env.globals.forEach((pos, name) => {
-          importObject.nameMap[pos] = name;
-        })
-      }
     };
 
     const env = emptyEnv;
