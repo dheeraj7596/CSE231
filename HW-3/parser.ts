@@ -397,11 +397,11 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt<any> {
       });
 
       if (ifBodyStmts.length == 0) {
-        throw("If Body cannot be empty");
+        throw Error("If Body cannot be empty");
       } else if (elifFlag && elifBodyStmts.length == 0) {
-        throw("Elif Body cannot be empty");
+        throw Error("Elif Body cannot be empty");
       } else if (elseFlag && elseBodyStmts.length == 0) {
-        throw("Else Body cannot be empty");
+        throw Error("Else Body cannot be empty");
       }
 
       return {
@@ -427,7 +427,7 @@ export function traverseStmt(c : TreeCursor, s : string) : Stmt<any> {
       c.parent();
 
       if (whileBodyStmts.length == 0) {
-        throw("While Body cannot be empty");
+        throw Error("While Body cannot be empty");
       }
       
       return {
