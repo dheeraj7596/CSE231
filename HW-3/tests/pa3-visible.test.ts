@@ -3,5 +3,5 @@ import { assert, asserts, assertPrint, assertTCFail, assertTC, assertFail } from
 
 describe("PA3 visible tests", () => {
   // 1
-  assert("literal-int", `100`, PyInt(100));
+  assert("literal-int", `print(True)`, PyBool(true));
 });

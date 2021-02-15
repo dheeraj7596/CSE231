@@ -306,6 +306,9 @@ function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
         if (funcNames.has(element.name)) {
           throw Error("Duplicate declaration of identifier in same scope: " + element.name); 
         }
+        if (element.parameters.length < 1 || element.parameters[0].type.tag != "class" || (element.parameters[0].type.tag == "class" && element.parameters[0].type.name != stmt.name)){
+          throw Error("First parameter of the following method must be of the enclosing class: " + element.name);
+        }
         funcNames.add(element.name);
         typedFuncDefs.push(typeCheckStmt(element, env));
       });
@@ -453,6 +456,7 @@ function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
           if (params.has(element.name)) {
             throw Error("Duplicate declaration of identifier in same scope: " + element.name);
           }
+          params.add(element.name);
           localEnv.set(element.name, element.type);
         }
       });
@@ -545,23 +549,40 @@ function tcReturnType(typedBody: Array<Stmt<Type>>, returnType:Type) : void {
   } 
 }
 
+function checkWhetherInitFirst(stmts: Array<Stmt<any>>) : void {
+  var initStmts : Array<Stmt<any>> = [];
+  var noninitStmts : Array<Stmt<any>> = [];
 
-function isDecl(s : Stmt<any>) {
-  // Add class check here
-  return s.tag === "init";
+  stmts.forEach(element => {
+    if (element.tag == "class" || element.tag == "init") {
+      if (noninitStmts.length > 0) {
+        throw Error("Variable declarations should be before any operations");
+      }
+      initStmts.push(element);
+    }
+    else {
+      noninitStmts.push(element);
+    }
+  });
+}
+
+function checkDuplicateGlobalVars(stmts: Array<Stmt<any>>) : void {
+  var variables = new Set<string>();
+
+  stmts.forEach(element => {
+    if (element.tag == "class" || element.tag == "init") {
+      if (variables.has(element.name)) {
+        throw Error("Duplicate declaration of identifier in same scope: " + element.name);
+      }
+      variables.add(element.name);
+    }
+  });
 }
 
 export function typeCheck(stmts: Array<Stmt<any>>, env: GlobalEnv) : Array<Stmt<Type>> {
+  checkWhetherInitFirst(stmts);
+  checkDuplicateGlobalVars(stmts);
   const newstmts : Array<Stmt<Type>> = [];
-  // let index = 0;
-
-  // while(isDecl(stmts[index])) {
-  //   let s = stmts[index];
-  //   if(s.tag === "init") {
-      
-  //   }
-  //   // Add class handling here
-  // }
   stmts.forEach(stmt => {
     newstmts.push(typeCheckStmt(stmt, env));
   });

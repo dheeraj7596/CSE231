@@ -2,11 +2,9 @@ const python = require('lezer-python');
 
 const input = 
 `
-class Rat(object):
-    n : int = 0
-    d : int = 0
-    def new(self : Rat, r1: Rat, n : int, d : int) -> None:
-        pass
+i:int = 9
+j:int = 8
+i = (i + j)
 
     `;
   

@@ -1,14 +1,8 @@
 Immediate:
-check whether self mentioned is same as class(10 mins)
-Check whether init statements are the first statements. (15 mins)
-parenthesized expression (15 mins)
-Initializing the same variable twice isn't throwing any error
-Double global declarations of same variable not throwing an error.
 
 Later:
 no-op inside if
-global variables shouldn't be saved.
+global variables shouldn't be saved in functions.
 
 Check:
 redeclaring class throws error.
-check whether parameter type can be none

@@ -446,8 +446,8 @@ function codeGen(stmt: Stmt<Type>, env: GlobalEnv, isFunc: boolean = false) : Ar
       }
       else {
         dummyPassStmts = dummyPassStmts.concat([`(i32.const ${envLookup(env, "scratchVar")}) ;; $scratchVar`]);
-        dummyPassStmts = dummyPassStmts.concat([`(i64.load)`]);
         dummyPassStmts = dummyPassStmts.concat([`(i32.const ${envLookup(env, "scratchVar")}) ;; $scratchVar`]);
+        dummyPassStmts = dummyPassStmts.concat([`(i64.load)`]);
         dummyPassStmts = dummyPassStmts.concat([`(i64.store)`]);
       }
       return dummyPassStmts;
