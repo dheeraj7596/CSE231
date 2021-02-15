@@ -7,7 +7,7 @@ export function traverseExpr(c : TreeCursor, s : string) : Expr<any> {
     case "None":
       return {
         tag: "literal",
-        value: Number(2) + 2**32, // Making the 33rd bit 1 and last to second bit 1.
+        value: 18446744073568479616, // This is None
         type: {tag: "none"}
       }
     case "Number":

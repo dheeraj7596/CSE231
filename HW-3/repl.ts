@@ -63,7 +63,11 @@ export class BasicREPL {
     else if (lastStmt.a.tag == "number") {
       console.log("I am in number ", result);
 
-      if (result < 2**32) { // This is a number
+      if (result == -141071616) {
+        // This is None
+        return { tag: "none" };
+      }
+      else if (result < 2**32) { // This is a number
         return { tag: "num", value: Number(result) };
       }
       else if (BigInt(result) >= 2**32 && BigInt(result) < (2**32 + 2)) {
@@ -75,10 +79,6 @@ export class BasicREPL {
         else if (ans == BigInt(0)) {
           return { tag: "bool", value: false };
         }
-      }
-      else if (BigInt(result) == BigInt(2**32 + 2)) {
-        // This is None
-        return { tag: "none" };
       }
       else {
         throw Error("A number out of range has appeared.");

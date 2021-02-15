@@ -17,7 +17,12 @@ function webStart() {
           console.log("Logging from WASM: ", arg);
           const elt = document.createElement("pre");
           document.getElementById("output").appendChild(elt);
-          if (arg < 2**32) { // This is a number
+          if (arg == -141071616) {
+            // This is None
+            elt.innerText = "";
+            return arg;
+          }
+          else if (arg < 2**32) { // This is a number
             elt.innerText = arg;
             return BigInt(arg);
           }
@@ -33,11 +38,6 @@ function webStart() {
             else {
               throw Error("Something other than True/False appeared.")
             }
-            return arg;
-          }
-          else if (BigInt(arg) == BigInt(2**32 + 2)) {
-            // This is None
-            elt.innerText = "";
             return arg;
           }
           

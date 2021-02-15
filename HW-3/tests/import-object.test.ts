@@ -4,7 +4,11 @@ import { NUM, BOOL, NONE } from "../utils";
 function stringify(typ: Type, arg: any): string {
   switch (typ.tag) {
     case "number":
-        if (arg < 2**32) { // This is a number
+        if (arg == -141071616) {
+            // This is None
+            return "";
+        }
+        else if (arg < 2**32) { // This is a number
             return (arg as number).toString();
         }
         else if (BigInt(arg) >= 2**32 && BigInt(arg) < (2**32 + 2)) {
@@ -16,10 +20,6 @@ function stringify(typ: Type, arg: any): string {
             else if (ans == BigInt(0)) {
                 return "False";
             }
-        }
-        else if (BigInt(arg) == BigInt(2**32 + 2)) {
-            // This is None
-            return "";
         }
         else {
             throw Error("A number out of range has appeared.");
