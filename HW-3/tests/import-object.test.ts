@@ -4,9 +4,28 @@ import { NUM, BOOL, NONE } from "../utils";
 function stringify(typ: Type, arg: any): string {
   switch (typ.tag) {
     case "number":
-      return (arg as number).toString();
+        if (arg < 2**32) { // This is a number
+            return (arg as number).toString();
+        }
+        else if (BigInt(arg) >= 2**32 && BigInt(arg) < (2**32 + 2)) {
+            // Bools are added with 2^32.
+            var ans = BigInt(arg) & BigInt(1);
+            if (ans == BigInt(1)) {
+                return "True";
+            }
+            else if (ans == BigInt(0)) {
+                return "False";
+            }
+        }
+        else if (BigInt(arg) == BigInt(2**32 + 2)) {
+            // This is None
+            return "";
+        }
+        else {
+            throw Error("A number out of range has appeared.");
+        }
     case "bool":
-      return (arg as boolean) ? "True" : "False";
+        return (arg as boolean) ? "True" : "False";    
     case "none":
       return "None";
     case "class":

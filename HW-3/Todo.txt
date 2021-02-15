@@ -1,4 +1,6 @@
 Immediate:
+r.d when r is None should throw an exception.
+check new class REPL.
 
 Later:
 no-op inside if

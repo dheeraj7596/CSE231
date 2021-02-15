@@ -80,7 +80,9 @@ export class BasicREPL {
         // This is None
         return { tag: "none" };
       }
-      return { tag: "num", value: Number(result) };
+      else {
+        throw Error("A number out of range has appeared.");
+      }
     }
     else if (lastStmt.a.tag == "class") {
       console.log("I am in class", result);
