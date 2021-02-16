@@ -289,6 +289,9 @@ function codeGen(stmt: Stmt<Type>, env: GlobalEnv, isFunc: boolean = false) : Ar
       if (isFunc && isFunctionVar(stmt.name, env)) {
         var valStmts = codeGenExpr(stmt.value, env, isFunc);
         return valStmts.concat([`(local.set $${stmt.name})`]);
+      }
+      else if (isFunc) {
+        throw Error("Cannot assign to variable that is not explicitly declared in this scope: " + stmt.name);
       } 
       else {
         const locationToStore = [`(i32.const ${envLookup(env, stmt.name)}) ;; ${stmt.name}`];
