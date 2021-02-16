@@ -396,19 +396,19 @@ function typeCheckStmt(stmt: Stmt<any>, env: GlobalEnv) : Stmt<Type> {
         elseTypedStmts.push(typeCheckStmt(element, env));
       });
 
-      const ifLastReturnType = stmt.ifthn[stmt.ifthn.length - 1].tag;
-      var elifLastReturnType = ifLastReturnType;
-      if (stmt.elifthn.length) {
-        elifLastReturnType = stmt.elifthn[stmt.elifthn.length - 1].tag
-      }
-      var elseLastReturnType = ifLastReturnType;
-      if (stmt.else.length) {
-        elseLastReturnType = stmt.else[stmt.else.length - 1].tag;
-      }
+      // const ifLastReturnType = stmt.ifthn[stmt.ifthn.length - 1].tag;
+      // var elifLastReturnType = ifLastReturnType;
+      // if (stmt.elifthn.length) {
+      //   elifLastReturnType = stmt.elifthn[stmt.elifthn.length - 1].tag
+      // }
+      // var elseLastReturnType = ifLastReturnType;
+      // if (stmt.else.length) {
+      //   elseLastReturnType = stmt.else[stmt.else.length - 1].tag;
+      // }
       
-      if (ifLastReturnType != elifLastReturnType || ifLastReturnType != elseLastReturnType) {
-        throw Error("If-Elif-Else body should return same types");
-      }
+      // if (ifLastReturnType != elifLastReturnType || ifLastReturnType != elseLastReturnType) {
+      //   throw Error("If-Elif-Else body should return same types");
+      // }
       
       return {
         tag: "if",
