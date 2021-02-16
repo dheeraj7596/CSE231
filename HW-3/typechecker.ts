@@ -579,12 +579,133 @@ function checkDuplicateGlobalVars(stmts: Array<Stmt<any>>) : void {
   });
 }
 
+function checkCallAndFunctionLookupExpr(expr: Expr<Type>, stack: Array<Number>, env: GlobalEnv): void {
+  switch(expr.tag) {
+    case "literal":
+      break;
+    case "uniop":
+      checkCallAndFunctionLookupExpr(expr.value, stack, env);
+    case "id":
+      break;
+    case "builtin1":
+      checkCallAndFunctionLookupExpr(expr.arg, stack, env);
+      break;
+    case "binop":
+      checkCallAndFunctionLookupExpr(expr.arg1, stack, env);
+      checkCallAndFunctionLookupExpr(expr.arg2, stack, env);
+      break;
+    case "builtin2":
+      checkCallAndFunctionLookupExpr(expr.arg1, stack, env);
+      checkCallAndFunctionLookupExpr(expr.arg2, stack, env);
+      break;
+    case "construct":
+      break;
+    case "lookup":
+      checkCallAndFunctionLookupExpr(expr.obj, stack, env);
+      let typedObjExpr = expr.obj;
+      let objType = typedObjExpr.a;
+      if(objType.tag === "class") {
+        const className = objType.name;
+        console.log("Class name is ", className);
+        if (!env.classVarNameTypes.has(className) || !env.classFuncDefs.has(className)) {
+          throw Error("Class `" + className + "` not found in classVarNameTypes or classFuncDefs");
+        }
+        let funcDefs = env.classFuncDefs.get(className);
+
+        if (funcDefs.has(expr.name)) {
+          if (stack.length == 0) {
+            throw Error("Function look up without parameters from 1");
+          }
+          stack.pop();
+        }
+      }
+      else {
+        throw new Error("Got non-object in field lookup.")
+      }
+      break;
+    case "call":
+      stack.push(1);
+      checkCallAndFunctionLookupExpr(expr.obj, stack, env);
+      expr.arguments.forEach(element => {
+        checkCallAndFunctionLookupExpr(element, stack, env);
+      });
+      break;
+  }
+}
+
+function checkCallAndFunctionLookupStmt(stmt: Stmt<Type>, stack: Array<Number>, env: GlobalEnv): void {
+  switch(stmt.tag) {
+    case "class":
+      stmt.decls.forEach(element => {
+        checkCallAndFunctionLookupStmt(element, stack, env);
+      });
+      stmt.funcdefs.forEach(element => {
+        checkCallAndFunctionLookupStmt(element, stack, env);
+      });
+      break;
+    case "define":
+      checkCallAndFunctionLookupExpr(stmt.value, stack, env);
+      break;
+    case "clsdefine":
+      checkCallAndFunctionLookupExpr(stmt.name, stack, env) 
+      checkCallAndFunctionLookupExpr(stmt.value, stack, env);
+      break;
+    case "expr":
+      checkCallAndFunctionLookupExpr(stmt.expr, stack, env);
+      break;
+    case "init":
+      checkCallAndFunctionLookupExpr(stmt.value, stack, env);
+      break;
+    case "if":
+      checkCallAndFunctionLookupExpr(stmt.ifcond, stack, env);
+      stmt.ifthn.forEach(element => {
+        checkCallAndFunctionLookupStmt(element, stack, env);
+      });
+      if (stmt.elifcond != null) {
+        checkCallAndFunctionLookupExpr(stmt.elifcond, stack, env);
+        stmt.elifthn.forEach(element => {
+          checkCallAndFunctionLookupStmt(element, stack, env);
+        });
+      }
+      stmt.else.forEach(element => {
+        checkCallAndFunctionLookupStmt(element, stack, env);
+      });
+      break;
+    case "while":
+      checkCallAndFunctionLookupExpr(stmt.cond, stack, env);
+      stmt.body.forEach(element => {
+        checkCallAndFunctionLookupStmt(element, stack, env);
+      });
+      break;
+    case "funcdef":
+      stmt.decls.forEach(element => {
+        checkCallAndFunctionLookupStmt(element, stack, env);
+      });
+      stmt.body.forEach(element => {
+        checkCallAndFunctionLookupStmt(element, stack, env);
+      });
+      break;
+    case "return":
+      checkCallAndFunctionLookupExpr(stmt.value, stack, env);
+      break;
+    case "pass":
+      break;
+  }
+}
+
 export function typeCheck(stmts: Array<Stmt<any>>, env: GlobalEnv) : Array<Stmt<Type>> {
   checkWhetherInitFirst(stmts);
   checkDuplicateGlobalVars(stmts);
   const newstmts : Array<Stmt<Type>> = [];
   stmts.forEach(stmt => {
     newstmts.push(typeCheckStmt(stmt, env));
+  });
+  newstmts.forEach(element => {
+    let stack : Number[] = [];
+    checkCallAndFunctionLookupStmt(element, stack, env);
+    if (stack.length != 0) {
+      throw Error("Function look up without parameters");
+    }
   });
   return newstmts;
 }
