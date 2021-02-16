@@ -3,9 +3,14 @@ import {parse} from './parser';
 
 const input = 
 `
-i:int = 9
-j:int = 8
-i = (i + j) + (k + l)
+class Employee:
+   empCount:int = 0
+
+   def __init__(self:Employee):
+      self.empCount = self.empCount + 1
+   
+   def displayCount(self:Employee):
+     print(self.empCount)
 
     `;
 const parsed = parse(input);

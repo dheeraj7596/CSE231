@@ -549,6 +549,9 @@ export function traverseParameters(c : TreeCursor, s : string) : Array<Parameter
   while (c.type.name != ")") {
     let name = s.substring(c.from, c.to);
     c.nextSibling(); // Focus on TypeDef
+    if (c.node.name != "TypeDef") {
+      throw Error("Type information of parameter: " + name + " missing.");
+    }
     c.firstChild(); // Colon
     c.nextSibling(); // variable type
     let type = s.substring(c.from, c.to);
